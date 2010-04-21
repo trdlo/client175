@@ -18,6 +18,10 @@ mpd.Controls = Ext.extend(Ext.Container, {
                 dragend: function(slider, e) {
                     val = Math.floor( ( slider.getValue()/100 ) * mpd.status.time )
                     if (val != mpd.status.elapsed) mpd.seek(val)
+                    appEvents.resume('elapsedchanged')
+                },
+                dragstart: function(slider, e) {
+                    appEvents.suspend('elapsedchanged')
                 }
             }
         })

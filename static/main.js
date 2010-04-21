@@ -19,9 +19,9 @@ mpd.init = function(){
             {
                 xtype: 'playlist_sidebar',
                 //playlistStyle: 'titles',
-                playlistStyle: '3line',
+                //playlistStyle: '3line',
                 //playlistStyle: 'albums',
-                //playlistStyle: 'albumcovers',
+                playlistStyle: 'albumcovers',
                 iconCls: 'icon-playlist',
                 region: 'east',
                 collapsible: true,
