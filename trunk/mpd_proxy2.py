@@ -110,12 +110,13 @@ class _Mpd_Instance:
         self._host = host
         self._port = port
         self._password = password
+        self._in_list = False
         self.con = None
         self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
         self.state_stamp = datetime.utcnow()
         self.playlist = _MpdPlaylist()
         self._dbcache = {}
-        self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo', 'listplaylistinfo')
+        self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
         self.lock = threading.RLock()
         self._connect()
         self.sync(True)
@@ -208,11 +209,13 @@ class _Mpd_Instance:
         
         
     def command_list_ok_begin(self):
+        self._in_list = True
         self._safe_cmd(self.con.command_list_ok_begin, ())
 
 
     def command_list_end(self):
         self._safe_cmd(self.con.command_list_end, ())
+        self._in_list = False
 
 
     def crop(self, id=None):
@@ -314,7 +317,7 @@ class _Mpd_Instance:
                 'title': item,
                 'type': what,
                 what: item,
-                any: item
+                'any': item
             }
         return data
 

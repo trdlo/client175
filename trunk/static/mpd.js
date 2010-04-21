@@ -12,16 +12,30 @@ appEvents = {
         }
         return appEvents._events[eventName]
     },
+    _suspendedEvents: [],
+    fire: function (eventName) {
+        if (this._suspendedEvents.indexOf(eventName) == -1) {
+            var evt = appEvents._get(eventName)
+            var cb = evt.callBacks, len = cb.length
+            for (var i = 0; i < len; i++) {
+                cb[i]()
+            }
+        }
+    },
+    resume: function (eventName) {
+        var i = this._suspendedEvents.indexOf(eventName)
+        if (i >= 0) {
+            this._suspendedEvents.splice(i, 1)
+        }
+    },
     subscribe: function (eventName, fn) {
         if ( !Ext.isFunction(fn) ) return null
         var evt = appEvents._get(eventName)
         evt.callBacks.push(fn)
     },
-    fire: function (eventName) {
-        var evt = appEvents._get(eventName)
-        var cb = evt.callBacks, len = cb.length
-        for (var i = 0; i < len; i++) {
-            cb[i]()
+    suspend: function (eventName) {
+        if (this._suspendedEvents.indexOf(eventName) == -1) {
+            this._suspendedEvents.push(eventName)
         }
     }
 }
@@ -104,13 +118,26 @@ mpd.cmd = function (aCmd) {
 }
 
 mpd.setvol_tmr = null
+function setvol(v) {
+    mpd.setvol_tmr=null
+    mpd.cmd(['setvol', v])
+    appEvents.resume('volumechanged')
+}
 mpd.setvol = function(v) {
     if (mpd.setvol_tmr) clearTimeout(mpd.setvol_tmr)
-    mpd.setvol_tmr = setTimeout("mpd.cmd(['setvol',"+v+"]);mpd.setvol_tmr=null", 100)
+    appEvents.suspend('volumechanged')
+    mpd.setvol_tmr = setvol.defer(100, null, [v])
 }
 
+
 mpd.seek_tmr = null
+function seek(v) {
+    mpd.seek_tmr=null
+    mpd.cmd(['seek', mpd.status.song, v])
+    appEvents.resume('elapsedchanged')
+}
 mpd.seek = function(v) {
     if (mpd.seek_tmr) clearTimeout(mpd.seek_tmr)
-    mpd.seek_tmr = setTimeout("mpd.cmd(['seek',"+mpd.status.song+","+v+"]);mpd.seek_tmr=null", 100)
+    appEvents.suspend('elapsedchanged')
+    mpd.seek_tmr = seek.defer(100, null, [v])
 }

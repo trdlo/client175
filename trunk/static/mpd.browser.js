@@ -250,7 +250,7 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                         tpl:
                         '<div class="{cls}">{title}' +
                         '<tpl if="cls == \'album-group-start\'">' +
-                            '<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}"><br>' +
+                            '<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
                             '<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
                             '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
                             '<i>{artist}</i>' +
@@ -311,6 +311,11 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             }
         })
 
+        new_list.on('dblclick', function(lstView, rowIdx, node, evt) {
+            var rec = self.store.getAt(rowIdx).data
+            mpd.cmd(['playid', rec.id])
+        })
+        
         if (self.list) {
             self.remove(self.list, true)
             self.list = new_list
@@ -449,7 +454,7 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
                     var row = rec.data
                     switch (col) {
                         case 'cicon':
-                            self.goTo(row)
+                            //self.goTo(row)
                             break;
                         case 'cpos':
                             var cur = self.selected
@@ -576,14 +581,14 @@ mpd.browser.TabBrowser = Ext.extend(mpd.browser.TabBase, {
 				break;
 			case 'file':
 				if (obj.pos) {
-					mpd.cmd( ['deleteid', obj.id] )
+					mpd.cmd( ['playid', obj.id] )
 				} else {
 					mpd.cmd( ['add', encId(obj.file)] )
 				}
 				return null;
 				break;
 			default:
-				return null;
+				store.baseParams = {cmd: 'find ' + itemType +' "' + dir + '"'};
 		}
 
         var tb = g.getTopToolbar()
@@ -767,8 +772,14 @@ Ext.reg('tab-search', mpd.browser.TabSearch)
 
 mpd.browser.TreeLoader = Ext.extend(Ext.tree.TreeLoader, {
 	createNode: function(attr) {
-		attr.text = attr.title
-		attr.iconCls = 'icon-' + attr.type
+        if (!attr.text) attr.text = attr.title
+		if (!attr.iconCls) attr.iconCls = 'icon-' + attr.type
+        switch (attr.type) {
+            case 'playlist':
+                attr.leaf = true; break;
+            case 'album':
+                attr.leaf = true; break;
+        }
 		return Ext.tree.TreeLoader.prototype.createNode.call(this, attr);
 	}	
 })
@@ -783,28 +794,69 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
             loader: new mpd.browser.TreeLoader({
                 dataUrl: '../query',
                 baseParams: {
-                    cmd: 'lsinfo'
+                    cmd: 'lsinfo',
+                    sort: 'title'
                 },
                 baseAttrs: {
                     singleClickExpand: true
                 },
                 listeners: {
 					'beforeload': function(treeLoader, node) {
-						d = node.id.split(":")[1]
-						treeLoader.baseParams.cmd = 'lsinfo "' + d + '"'
+						var cmd = node.attributes.cmd
+                        if (!cmd) {
+                            var t = node.attributes.type
+                            var val = node.attributes[t]
+                            switch (t) {
+                                case 'directory':
+                                    cmd = 'lsinfo "' + val + '"';
+                                    break;
+                                case 'playlist':
+                                    cmd = 'lsinfo';
+                                    break;
+                                default:
+                                    cmd = 'list album ' + t + ' "' + val + '"';
+                                    break;
+                            }
+                        }
+                        treeLoader.baseParams.cmd = cmd
 					}
 				}
             }),
             root: new Ext.tree.AsyncTreeNode({
                 expanded: true,
                 singleClickExpand: true,
-                id: 'directory:/'
+                children: [{
+                    nodeType: 'async',
+                    id: 'playlist:',
+                    text: 'Playlists',
+                    iconCls: 'icon-playlist',
+                    cmd: 'lsinfo'
+                }, {
+                    nodeType: 'async',
+                    id: 'artist:',
+                    text: 'Artist/Albums',
+                    iconCls: 'icon-artist',
+                    cmd: 'list artist'
+                }, {
+                    nodeType: 'async',
+                    id: 'directory:/',
+                    text: 'Folders',
+                    iconCls: 'icon-directory',
+                    cmd: 'lsinfo'
+                }] 
             }),
             rootVisible: false,
             listeners: {
                 'click': function(node) {
-					d = node.id.split(":")[1]
-                    Ext.getCmp('dbtabbrowser').getActiveBrowser().goTo(d)
+					attr = node.attributes
+                    Ext.getCmp('dbtabbrowser').getActiveBrowser().goTo(attr)
+                },
+                'afterrender': function (tree) {
+                    appEvents.subscribe('db_updatechanged', function(){
+                        tree.root.eachChild(function(node){
+                            if (node.isLoaded()) node.reload()
+                        })
+                    })
                 }
             }
         })

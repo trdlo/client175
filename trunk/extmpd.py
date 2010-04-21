@@ -162,8 +162,32 @@ class Root:
         
         node = kwargs.get("node", False)
         if node:
-            t = node.split(":")[0]
-            data = [x for x in data if x['type'] == t]
+            if not cmd.startswith('list '):
+                t = node.split(":")[0]
+                result = [x for x in data if x['type'] == t]
+            elif len(data) > 200:
+                result = []
+                data = [x for x in data if x['title']]
+                letters = set([x['title'][0].upper() for x in data if x['title']])
+                special = {
+                    'text': "0-9",
+                    'iconCls': 'icon-artist',
+                    'children': []
+                }
+                result.append(special)
+                for char in letters:
+                    if char < 'A':
+                        special['children'].extend([x for x in data if x['title'][0] == char])
+                    elif char < 'ZZ':
+                        container = {
+                            'text': char,
+                            'iconCls': 'icon-artist',
+                            'children': [x for x in data if x['title'][0].upper() == char]
+                        }
+                        result.append(container)
+            else:
+                result = data
+            return json.dumps(result)                
             
         if limit:
             ln = len(data)
