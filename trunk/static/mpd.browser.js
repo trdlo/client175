@@ -839,7 +839,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     cmd: 'list artist'
                 }, {
                     nodeType: 'async',
-                    id: 'directory:/',
+                    id: 'directory:',
                     text: 'Folders',
                     iconCls: 'icon-directory',
                     cmd: 'lsinfo'
