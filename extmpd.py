@@ -154,41 +154,15 @@ class Root:
                 
 
     def query(self, cmd, start=0, limit=0, sort='', dir='ASC', **kwargs):
+        node = kwargs.get("node", False)
+        if node:             
+            return self.tree(cmd, node)
+            
         start = int(start)
         if sort:
             data = mpd.execute_sorted(cmd, sort, dir=='DESC')
         else:
             data = mpd.execute(cmd)
-        
-        node = kwargs.get("node", False)
-        if node:
-            if not cmd.startswith('list '):
-                t = node.split(":")[0]
-                result = [x for x in data if x['type'] == t]
-            elif len(data) > 200:
-                result = []
-                data = [x for x in data if x['title']]
-                letters = set([x['title'][0].upper() for x in data if x['title']])
-                special = {
-                    'text': "0-9",
-                    'iconCls': 'icon-artist',
-                    'children': []
-                }
-                result.append(special)
-                for char in letters:
-                    if char < 'A':
-                        special['children'].extend([x for x in data if x['title'][0] == char])
-                    elif char < 'ZZ':
-                        container = {
-                            'text': char,
-                            'iconCls': 'icon-artist',
-                            'children': [x for x in data if x['title'][0].upper() == char]
-                        }
-                        result.append(container)
-            else:
-                result = data
-            return json.dumps(result)                
-            
         if limit:
             ln = len(data)
             end = start + int(limit)
@@ -217,6 +191,79 @@ class Root:
             mpd.sync()
         return json.dumps(mpd.state)
     status.exposed = True
+
+
+    def tree(self, cmd, node, **kwargs):
+        if node == 'directory:':
+            result = []
+            rawdata = mpd.listall()
+            data = []
+            for d in rawdata:
+                directory = d.get("directory")
+                if directory:
+                    parts = directory.split("/")
+                    data.append({
+                        'title': parts.pop(),
+                        'parent': '/'.join(parts),
+                        'directory': directory,
+                        'type': 'directory',
+                        'leaf': True
+                    })
+                    
+            def loadChildren(parent, parentpath):
+                children = [x for x in data if x['parent'] == parentpath]
+                if children:
+                    parent['leaf'] = False
+                    parent['children'] = []
+                    for c in children:
+                        parent['children'].append(c)
+                        loadChildren(c, c['directory'])
+                        
+            root = {
+                'text': 'Music Folders',
+                'directory': '/',
+                'type': 'directory',
+                'leaf': True
+            }
+            loadChildren(root, '')
+            result = root['children']
+        else:           
+            itemType = node.split(":")[0]
+            data = mpd.execute_sorted(cmd, itemType)
+                
+            if itemType in ['directory', 'playlist']:
+                result = [x for x in data if x['type'] == itemType]
+            elif len(data) > 200:
+                result = []
+                data = [x for x in data if x['title']]
+                letters = sorted(set([x['title'][0].upper() for x in data]))
+                special = {
+                    'text': "'(.0-9?",
+                    'iconCls': 'icon-'+itemType,
+                    'cls': 'group-by-letter',
+                    'children': [x for x in data if x['title'][0] < 'A']
+                }
+                result.append(special)
+                for char in letters:
+                    if char >= 'A' and char < 'Z':
+                        container = {
+                            'text': char,
+                            'iconCls': 'icon-'+itemType,
+                            'cls': 'group-by-letter',
+                            'children': [x for x in data if x['title'][0].upper() == char]
+                        }
+                        result.append(container)
+                container = {
+                    'text': 'Z+',
+                    'iconCls': 'icon-'+itemType,
+                    'cls': 'group-by-letter',
+                    'children': [x for x in data if x['title'][0].upper() > 'Y']
+                }
+                result.append(container)
+            else:
+                result = data
+        return json.dumps(result)
+    tree.exposed = True
 
 
 
