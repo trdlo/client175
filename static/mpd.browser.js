@@ -1,3 +1,4 @@
+var PAGE_LIMIT = 200
 mpd.dbFields = function() {
     return [
         {'name': 'id'},
@@ -287,7 +288,8 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             store: self.store,
             multiSelect: true,
             cls: pstyle,
-            columns: cols
+            columns: cols,
+            enableDragDrop: true
         })
 
         new_list.on('beforeclick', function(lstView, rowIdx, node, evt) {
@@ -316,6 +318,71 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             mpd.cmd(['playid', rec.id])
         })
         
+        new_list.on('render', function(v) {
+            new_list.dragZone = new Ext.dd.DragZone(v.getEl(), {
+
+        //      On receipt of a mousedown event, see if it is within a DataView node.
+        //      Return a drag data object if so.
+                getDragData: function(e) {
+
+        //          Use the DataView's own itemSelector (a mandatory property) to
+        //          test if the mousedown is within one of the DataView's nodes.
+                    var sourceEl = e.getTarget(v.itemSelector, 10);
+
+        //          If the mousedown is within a DataView node, clone the node to produce
+        //          a ddel element for use by the drag proxy. Also add application data
+        //          to the returned data object.
+                    if (sourceEl) {
+                        rec = v.getRecord(sourceEl)
+                        if (!rec.data.pos) return null
+                        song = Ext.query("dt:nth(2)", sourceEl)
+                        d = song[0].cloneNode(true);
+                        d.id = Ext.id();
+                        return {
+                            ddel: d,
+                            sourceEl: sourceEl,
+                            repairXY: Ext.fly(sourceEl).getXY(),
+                            sourceStore: v.store,
+                            draggedRecord: rec
+                        }
+                    }
+                },
+                getRepairXY: function() {
+                    return this.dragData.repairXY;
+                }
+            });
+            
+            new_list.dropZone = new Ext.dd.DropZone(v.getEl(), {
+                getTargetFromEvent: function(e) {
+                    return e.getTarget(v.itemSelector, 10);
+                },
+                onNodeEnter : function(target, dd, e, data){ 
+                    Ext.fly(target).addClass('list-dropover');
+                },
+                onNodeOut : function(target, dd, e, data){ 
+                    Ext.fly(target).removeClass('list-dropover');
+                },
+                onNodeOver : function(target, dd, e, data){ 
+                    return Ext.dd.DropZone.prototype.dropAllowed;
+                },
+                onNodeDrop : function(target, dd, e, data){
+                    var recFrom = data.draggedRecord.data
+                    var recTo = new_list.getRecord(target)
+                    if (!recTo.data.pos) {
+                        var s = data.sourceStore
+                        recTo = s.getAt(s.indexOf(recTo)+1)
+                    }
+                    recTo = recTo.data
+                    if (recFrom.id == recTo.id) return false
+                    var posTo = recTo.pos - 1
+                    if (posTo > recFrom.pos) posTo--
+                    mpd.cmd(['moveid', recFrom.id, posTo])                    
+                    return true;
+                }
+            });
+
+        });
+
         if (self.list) {
             self.remove(self.list, true)
             self.list = new_list
@@ -392,7 +459,7 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
         } 
         this.filter = new Ext.app.FilterField({
             store: this.store,
-            width:160
+            width:140
         })
 
         Ext.apply(this, {
@@ -435,13 +502,17 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
             autoExpandMax: 300,
             closable: true,
             hideParent: true,
+            //enableDragDrop: true,
             tbar: new Ext.Toolbar(),
             bbar: new Ext.PagingToolbar({
-				pageSize: 200,
+				pageSize: PAGE_LIMIT,
 				store: this.store,
 				displayInfo: true,
 				displayMsg: 'Displaying items {0} - {1} of {2}',
 				emptyMsg: "No items to display",
+                plugins: [
+                    new Ext.ux.plugins.PageCycleResizer({pageSizes: [25, 50, 100, 200, 400, 800]})
+                ],
 				prependButtons: true,
 				items: ['Filter: ', ' ', this.filter, '-']
 			}),
@@ -541,7 +612,7 @@ mpd.browser.TabBrowser = Ext.extend(mpd.browser.TabBase, {
         appEvents.subscribe('playlistchanged', function(){
             if (self.store.getCount() > 0) {
                 if (!self.store.lastOptions) {
-                    self.store.load({params: {start: 0, limit: 200}})
+                    self.store.load({params: {start: 0, limit: PAGE_LIMIT}})
                 } else {
                     self.store.reload()
                 }
@@ -596,7 +667,7 @@ mpd.browser.TabBrowser = Ext.extend(mpd.browser.TabBase, {
         var t = '/'
         if (dir != this.cwd || isSearch) {
             if (!isSearch) this.cwd = dir
-            store.load({params:{start:0, limit:200}})
+            store.load({params:{start:0, limit:PAGE_LIMIT}})
 
             // Remove any existing Path buttons
             btn = tb.getComponent(1)
@@ -741,7 +812,7 @@ mpd.browser.TabPlaylist = Ext.extend(mpd.browser.TabBase, {
         appEvents.subscribe('playlistchanged', function(){
             self.getView().holdPosition = true
             if (!self.store.lastOptions) {
-                self.store.load({params: {start: 0, limit: 200}})
+                self.store.load({params: {start: 0, limit: PAGE_LIMIT}})
             } else {
                 self.store.reload()
             }
@@ -788,6 +859,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
     constructor: function(config) {
         Ext.apply(this, {
             title: 'Navigation',
+            //enableDragDrop: true,
             autoScroll: true,
             useArrows: true,
             singleExpand: true,
