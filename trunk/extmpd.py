@@ -219,23 +219,17 @@ class Root:
                         parent['children'].append(c)
                         loadChildren(c, c['directory'])
                         
-            root = {
-                'text': 'Music Folders',
-                'directory': '/',
-                'type': 'directory',
-                'leaf': True
-            }
+            root = {}
             loadChildren(root, '')
             result = root['children']
         else:           
             itemType = node.split(":")[0]
-            data = mpd.execute_sorted(cmd, itemType)
-                
+            data = [x for x in mpd.execute_sorted(cmd, itemType) if x.get('title')]
+            
             if itemType in ['directory', 'playlist']:
                 result = [x for x in data if x['type'] == itemType]
             elif len(data) > 200:
                 result = []
-                data = [x for x in data if x['title']]
                 letters = sorted(set([x['title'][0].upper() for x in data]))
                 special = {
                     'text': "'(.0-9?",
