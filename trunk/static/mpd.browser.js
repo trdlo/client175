@@ -318,6 +318,16 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             mpd.cmd(['playid', rec.id])
         })
         
+        var ddTpl = new Ext.XTemplate(
+            '<div>',
+                '<tpl for=".">',
+                    '<div class={[xcount == xindex ? "" : "album-group-end"]}>',
+                        '{title}',
+                    '</div>',
+                '</tpl>',
+            '</div>'
+        ).compile()
+        
         new_list.on('render', function(v) {
             new_list.dragZone = new Ext.dd.DragZone(v.getEl(), {
 
@@ -333,10 +343,12 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
         //          a ddel element for use by the drag proxy. Also add application data
         //          to the returned data object.
                     if (sourceEl) {
-                        rec = v.getRecord(sourceEl)
+                        var rec = v.getRecord(sourceEl)
                         if (!rec.data.pos) return null
-                        song = Ext.query("dt:nth(2)", sourceEl)
-                        d = song[0].cloneNode(true);
+                        var songInfo = Ext.query("dt:nth(2)", sourceEl)[0]
+                        var d = songInfo.cloneNode(true);
+                        var w = Ext.fly(songInfo).getComputedWidth() - 18
+                        d.style.minWidth = w+"px"
                         d.id = Ext.id();
                         return {
                             ddel: d,
@@ -384,6 +396,8 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
         });
 
         if (self.list) {
+            self.list.dragZone.unreg()
+            self.list.dropZone.unreg()
             self.remove(self.list, true)
             self.list = new_list
             self.add(new_list)
