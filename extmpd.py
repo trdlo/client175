@@ -4,11 +4,11 @@ import mpd_proxy2 as mpd_proxy
 import lyrics as _lyrics
 from covers import CoverSearch
 
-mpd = mpd_proxy.Mpd(host="192.168.1.2")
-local_dir = os.path.join(os.getcwd(), os.path.dirname(__file__))
-covers_dir = os.path.join(local_dir, "static", "covers")
-cs = CoverSearch(covers_dir)
-cache = {}
+mpd = mpd_proxy.Mpd()
+MUSIC_DIR = "/home/chris/Music"
+LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
+COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
+cs = CoverSearch(COVERS_DIR)
 
 cherrypy.config.update( {
     'tools.log_tracebacks.on': True,
@@ -16,12 +16,20 @@ cherrypy.config.update( {
     'server.socket_host': '0.0.0.0'
 } )
 
+try:
+    import mutagen
+    from mutagen.flac import FLAC
+    from mutagen.apev2 import APEv2
+    from mutagen.id3 import *
+    from mutagen.easyid3 import EasyID3
+except:
+    mutagen = None
 
 class Root:
 
     static = cherrypy.tools.staticdir.handler(
                 section="/static",
-                dir=os.path.join(local_dir, "static"),
+                dir=os.path.join(LOCAL_DIR, "static"),
             )
 
 
@@ -70,6 +78,33 @@ class Root:
         result = mpd.execute(args)
         return json.dumps(result)
     default.exposed = True
+
+
+    def edit(self, id, itemtype, **kwargs):            
+        if itemtype == 'playlist':
+            newname = kwargs.get("playlist")
+            if newname:
+                mpd.rename(id, newname)
+            else:
+               raise cherrypy.HTTPError(message="New playlist name not found.")
+               
+        elif itemtype == 'file':
+            if mutagen is None:
+                raise cherrypy.HTTPError(message="Editing tags not supported.  Please install Mutagen.")
+            else:
+                loc = os.path.join(MUSIC_DIR, id)
+                f = EasyID3(loc)
+                for tag, val in kwargs.items():
+                    if tag.lower() == 'track':
+                        tag = 'tracknumber'
+                    f[tag] = val
+                f.save()
+                mpd.update(id)
+                mpd.clear_cache()
+                return "OK"
+        else:
+            raise cherrypy.HTTPError(message="Editing of type '%s' not supported." % itemtype)
+    edit.exposed = True
 
 
     def home(self):
@@ -263,5 +298,5 @@ class Root:
 
 cherrypy.quickstart(Root())
 # Uncomment the following to use your own favicon instead of CP's default.
-#favicon_path = os.path.join(local_dir, "favicon.ico")
+#favicon_path = os.path.join(LOCAL_DIR, "favicon.ico")
 #root.favicon_ico = tools.staticfile.handler(filename=favicon_path)

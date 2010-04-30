@@ -1,5 +1,31 @@
 Ext.Ajax.disableCaching = false
 Ext.namespace('mpd')
+TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
+
+mpd.dbFields = function() {
+    return [
+        {'name': 'id'},
+        {'name': 'file'},
+        {'name': 'directory'},
+        {'name': 'playlist'},
+        {'name': 'type'},
+        {'name': 'pos', 'type': 'int'},
+        {'name': 'artist'},
+        {'name': 'album'},
+        {'name': 'albumartist'},
+        {'name': 'title'},
+        {'name': 'track'},
+        {'name': 'time', 'type': 'int'},
+        {'name': 'ptime'},
+        {'name': 'genre'},
+        {'name': 'date'},
+        {'name': 'composer'},
+        {'name': 'performer'},
+        {'name': 'disc'},
+        {'name': 'cls'},
+        {'name': 'any'}
+    ]
+}
 
 appEvents = {
     _events: {},
@@ -107,11 +133,15 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 })
 
 
-mpd.cmd = function (aCmd) {
+mpd.cmd = function (aCmd, callBack) {
     mpd.timer_delay = 75
     Ext.Ajax.request({
         url: '../' + aCmd.join("/"),
         success: function(response, opts) {
+			if (Ext.isFunction(callBack)) {
+				d = Ext.util.JSON.decode(response.responseText)
+				callBack(d)
+			}
             mpd.checkStatus.delay(200)
         }
     })

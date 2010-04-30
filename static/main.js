@@ -33,14 +33,12 @@ mpd.init = function(){
                 region: 'center',
                 split: true,
                 items: {
-                    xtype: 'tab-browser-panel'
+                    xtype: 'browser-tab-panel'
                 }
             }
         ]
     })
-    t = Ext.getCmp('dbtabbrowser')
-    t.getActiveBrowser().goTo("/")
-    mpd.checkStatus.delay(0)
+    mpd.cmd(['tagtypes'], function(d){console.log(d);TAG_TYPES = d})
 }
 
 Ext.onReady(mpd.init);
