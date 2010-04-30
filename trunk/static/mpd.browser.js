@@ -9,6 +9,7 @@ mpd.dbFields = function() {
         {'name': 'pos', 'type': 'int'},
         {'name': 'artist'},
         {'name': 'album'},
+        {'name': 'albumartist'},
         {'name': 'title'},
         {'name': 'track'},
         {'name': 'time', 'type': 'int'},
@@ -450,7 +451,7 @@ mpd.browser.PlaylistToolbar = Ext.extend(Ext.Toolbar, {
 })
 
 
-mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
+mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
     constructor: function(config) {
         var self = this
         this.cwd = null
@@ -478,6 +479,7 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
 
         Ext.apply(this, {
             store: this.store,
+            region: 'center',
             cm: new Ext.grid.ColumnModel({
                 columns: [
                     {id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
@@ -598,10 +600,19 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
                     var row = self.getStore().getAt(rowIdx).data
                     self.goTo(row)
                 }
-            }
+            },
+            selModel: new Ext.grid.RowSelectionModel({
+				listeners: {
+					'rowselect': function(sm, rowIdx, rec) {
+						var pg = self.ownerCt.findByType('propertygrid')
+						if (pg.length == 0) return null
+						pg[0].loadRecord(rec)
+					}
+				}
+			})
         });
         Ext.apply(this, config)
-        mpd.browser.TabBase.superclass.constructor.apply(this, arguments);
+        mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
 
         var sm = self.getSelectionModel()
         this.selected = []
@@ -612,15 +623,15 @@ mpd.browser.TabBase = Ext.extend(Ext.grid.GridPanel, {
         this.onHoverOut = function(evt, el) {
             Ext.select(".x-grid3-body .simulated_hover", this.el).removeClass('simulated_hover')
             self.selected = []
-        }
+        }        
     }
 })
 
 
-mpd.browser.TabBrowser = Ext.extend(mpd.browser.TabBase, {
+mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
         Ext.apply(this, config)
-        mpd.browser.TabBrowser.superclass.constructor.apply(this, arguments);
+        mpd.browser.DbBrowser.superclass.constructor.apply(this, arguments);
 
         var self = this
         appEvents.subscribe('playlistchanged', function(){
@@ -749,10 +760,77 @@ mpd.browser.TabBrowser = Ext.extend(mpd.browser.TabBase, {
         }
     }
 });
-Ext.reg('tab-browser', mpd.browser.TabBrowser)
+Ext.reg('db-browser', mpd.browser.DbBrowser)
 
 
-mpd.browser.TabBrowserPanel = Ext.extend(Ext.TabPanel, {
+mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
+    constructor: function(config) {
+		this.changes = {}
+		this.btnSave = new Ext.Button({
+			text: 'Save Changes',
+			disabled: true,
+			handler: this.saveChanges.createDelegate(this)
+		})
+		
+        Ext.apply(this, {
+			title: 'Tags',
+			bbar: ["->", this.btnSave],
+			listeners: {
+				'beforepropertychange': function(src, key, val, old) {
+					if (key.charAt(0) == "(") return false
+					this.changes[key] = val
+					this.btnSave.enable()
+				}
+			}
+		})
+        Ext.apply(this, config)
+        mpd.browser.TagEditor.superclass.constructor.apply(this, arguments);
+    },
+    saveChanges: function() {
+		var self = this
+		var src = this.getSource()
+		var id = src['(id)'].split(":", 2)
+		var data = {'itemtype': id[0], 'id': id[1]}
+		Ext.apply(data, this.changes)
+		
+		Ext.Ajax.request({
+			url: '../edit',
+			params: data,
+			success: function(response, opts) {
+				var rec = self.record
+				Ext.iterate(self.changes, function (key, val) {
+					rec.data[key.toLowerCase()] = val
+				})
+				rec.commit()
+				self.loadRecord(null)
+			},
+			failure: function(response, opts) {
+				Ext.Msg.alert('Error', response.responseText)
+				self.loadRecord(null)
+			}
+		})
+	},
+    loadRecord: function(rec) {
+		if (!rec) {
+			rec = this.record
+		} else {
+			this.record = rec
+		}
+		var data = rec.data
+		var src = {}
+		src['(id)'] = data.id
+		Ext.each(TAG_TYPES, function (key) {
+			src[key] = data[key.toLowerCase()]
+		})
+		this.btnSave.disable()
+		this.changes = {}
+		this.setSource(src)
+	}
+})
+Ext.reg('tag-editor', mpd.browser.TagEditor)
+
+
+mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
     constructor: function(config) {
         var self = this
         Ext.apply(this, {
@@ -762,13 +840,6 @@ mpd.browser.TabBrowserPanel = Ext.extend(Ext.TabPanel, {
             border: false,
             items: [
                 {
-                    title: 'Home',
-                    layout: 'fit',
-                    iconCls: 'icon-directory',
-                    closable: false,
-                    items: {xtype: 'tab-browser'}
-                },
-                {
                     id: 'new_tab',
                     iconCls: 'icon-newtab',
                     layout: 'fit',
@@ -776,6 +847,9 @@ mpd.browser.TabBrowserPanel = Ext.extend(Ext.TabPanel, {
                 }
             ],
             listeners: {
+				'render': function() {
+					self.addTab('/', true)
+				},
                 'beforetabchange': function(pnl, new_tab, old_tab) {
                     if (new_tab.id == 'new_tab') {
                         self.addTab()
@@ -785,38 +859,58 @@ mpd.browser.TabBrowserPanel = Ext.extend(Ext.TabPanel, {
             }
         })
         Ext.apply(this, config)
-        mpd.browser.TabBrowserPanel.superclass.constructor.apply(this, arguments);
+        mpd.browser.TabPanel.superclass.constructor.apply(this, arguments);
     },
-    getActiveBrowser: function () {
-        var self = this
-        var atab = self.getActiveTab()
+    _getActiveTab: function () {
+        var atab = this.getActiveTab()
         if (!atab) {
-            atab = self.get(self.items.getCount()-1)
+            atab = this.get(this.items.getCount()-1)
             self.setActiveTab(atab)
         }
+        return atab
+	},
+    getActiveBrowser: function () {
+        var atab = this._getActiveTab()
         if (atab) return atab.get(0)
         return null
     },
-    addTab: function (dir) {
-        var self = this
-        var idx = self.items.length - 1
+    getActiveTagGrid: function () {
+        var atab = this._getActiveTab()
+        if (atab) return atab.get(1)
+        return null
+    },
+    addTab: function (dir, disableClose) {
+        var idx = this.items.length - 1
         dir = dir || '/'
-        var t = self.insert(idx, {
+        var t = this.insert(idx, {
             title: 'Home',
-            layout: 'fit',
+            layout: 'border',
             iconCls: 'icon-directory',
-            closable: true,
-            items: new mpd.browser.TabBrowser()
+            closable: !disableClose,
+            items: [
+				{
+					xtype: 'db-browser',
+					region: 'center'
+				},
+				{
+					xtype: 'tag-editor',
+					region: 'east',
+					collapsible: true,
+					collapsed: true,
+					split: true,
+					width: 200
+				}
+			]
         })
-        self.setActiveTab(t)
+        this.setActiveTab(t)
         t.get(0).goTo(dir)
         return t
     }
 })
-Ext.reg('tab-browser-panel', mpd.browser.TabBrowserPanel)
+Ext.reg('browser-tab-panel', mpd.browser.TabPanel)
 
 
-mpd.browser.TabPlaylist = Ext.extend(mpd.browser.TabBase, {
+mpd.browser.TabPlaylist = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
         config.tbar = new mpd.browser.PlaylistToolbar()
         config.cmd = 'playlistinfo'
@@ -837,7 +931,7 @@ mpd.browser.TabPlaylist = Ext.extend(mpd.browser.TabBase, {
 Ext.reg('tab-playlist', mpd.browser.TabPlaylist)
 
 
-mpd.browser.TabSearch = Ext.extend(mpd.browser.TabBase, {
+mpd.browser.TabSearch = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
         Ext.apply(this, config)
         mpd.browser.TabSearch.superclass.constructor.apply(this, arguments);

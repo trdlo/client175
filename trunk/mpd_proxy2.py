@@ -208,6 +208,10 @@ class _Mpd_Instance:
             self.lock.release()
         
         
+    def clear_cache(self):
+		self._dbcache = {}
+        
+        
     def command_list_ok_begin(self):
         self._in_list = True
         self._safe_cmd(self.con.command_list_ok_begin, ())

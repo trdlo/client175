@@ -60,15 +60,30 @@ mpd.Controls = Ext.extend(Ext.Container, {
             }
         })
 
-        var searchBox = new Ext.Container({
+        var endBox = new Ext.Container({
             layout: 'absolute',
             width: 160,
             height: 62,
             items: [
+				new Ext.SplitButton({
+                    width: 140,
+                    x: 10,
+                    y: 4,
+					text: 'Theme Chooser',
+					//handler: optionsHandler, // handle a click on the button itself
+					menu: new Ext.menu.Menu({
+						items: [
+							// these items will render as dropdown menu items when the arrow is clicked:
+							{text: 'Blue Theme', handler: setActiveStyleSheet.createCallback('blue')},
+							{text: 'Gray Theme', handler: setActiveStyleSheet.createCallback('gray')},
+							{text: 'Custom Theme', handler: setActiveStyleSheet.createCallback('yourtheme')}
+						]
+					})
+				}),
                 new Ext.app.SearchField({
                     width: 140,
                     x: 10,
-                    y: 17,
+                    y: 32,
                     emptyText: 'Type here to search...',
                     store: new Ext.data.JsonStore({
                         url: '/query',
@@ -193,7 +208,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
             layout: 'hbox',
             items: [
                 statusControls,
-                searchBox
+                endBox
             ]
         })
 
