@@ -2,7 +2,7 @@
 #
 #       mpd_proxy2.py
 #
-#       Copyright 2009 Chris Seickel <chris@chris-laptop>
+#       Copyright 2009 Chris Seickel
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by

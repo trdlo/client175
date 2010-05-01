@@ -1,3 +1,25 @@
+#!/usr/bin/env python
+#
+#       extmpd.py
+#
+#       Copyright 2009 Chris Seickel
+#
+#       This program is free software; you can redistribute it and/or modify
+#       it under the terms of the GNU General Public License as published by
+#       the Free Software Foundation; either version 2 of the License, or
+#       (at your option) any later version.
+#
+#       This program is distributed in the hope that it will be useful,
+#       but WITHOUT ANY WARRANTY; without even the implied warranty of
+#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#       GNU General Public License for more details.
+#
+#       You should have received a copy of the GNU General Public License
+#       along with this program; if not, write to the Free Software
+#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#       MA 02110-1301, USA.
+
+
 import cherrypy, json, os
 from time import sleep
 import mpd_proxy2 as mpd_proxy
@@ -16,14 +38,8 @@ cherrypy.config.update( {
     'server.socket_host': '0.0.0.0'
 } )
 
-try:
-    import mutagen
-    from mutagen.flac import FLAC
-    from mutagen.apev2 import APEv2
-    from mutagen.id3 import *
-    from mutagen.easyid3 import EasyID3
-except:
-    mutagen = None
+import metadata
+from metadata._base import NotReadable, NotWritable
 
 class Root:
 
@@ -89,19 +105,31 @@ class Root:
                raise cherrypy.HTTPError(message="New playlist name not found.")
                
         elif itemtype == 'file':
-            if mutagen is None:
-                raise cherrypy.HTTPError(message="Editing tags not supported.  Please install Mutagen.")
-            else:
-                loc = os.path.join(MUSIC_DIR, id)
-                f = EasyID3(loc)
-                for tag, val in kwargs.items():
-                    if tag.lower() == 'track':
-                        tag = 'tracknumber'
-                    f[tag] = val
-                f.save()
-                mpd.update(id)
-                mpd.clear_cache()
-                return "OK"
+            loc = os.path.join(MUSIC_DIR, id)
+            tags = {}
+            for tag, val in kwargs.items():
+                tag = tag.lower()
+                if tag == 'track':
+                    tags['tracknumber'] = val
+                else:
+                    tags[tag] = val
+            print tags
+            
+            #  Easy version, very limited
+            #
+            #f = EasyID3(loc)
+            #for tag, val in kwargs.items():
+                #if tag.lower() == 'track':
+                    #tag = 'tracknumber'
+                #f[tag] = val
+            #f.save()
+            
+            f = metadata.get_format(loc)
+            f.write_tags(tags)
+            
+            mpd.update(id)
+            mpd.clear_cache()
+            return "OK"
         else:
             raise cherrypy.HTTPError(message="Editing of type '%s' not supported." % itemtype)
     edit.exposed = True
