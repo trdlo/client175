@@ -789,8 +789,8 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
     saveChanges: function() {
 		var self = this
 		var src = this.getSource()
-		var id = src['(id)'].split(":", 2)
-		var data = {'itemtype': id[0], 'id': id[1]}
+		var d = this.record.data
+		var data = {'itemtype': d.type, 'id': d[d.type]}
 		Ext.apply(data, this.changes)
 		
 		Ext.Ajax.request({
@@ -818,7 +818,7 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		}
 		var data = rec.data
 		var src = {}
-		src['(id)'] = data.id
+		src['(id)'] = data.type + ":" + data[data.type]
 		Ext.each(TAG_TYPES, function (key) {
 			src[key] = data[key.toLowerCase()]
 		})
