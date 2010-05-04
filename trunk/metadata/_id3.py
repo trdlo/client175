@@ -24,6 +24,8 @@
 # do so. If you do not wish to do so, delete this exception statement
 # from your version.
 
+# Modified by Chris Seickel to add Album Artist tag and change Performer tag
+# to match MPD's implementaion.
 
 
 from metadata._base import BaseFormat
@@ -44,12 +46,14 @@ class ID3Format(BaseFormat):
         "date": "TDRC",
         "arranger": "TPE4",
         "conductor": "TPE3",
-        "performer": "TPE2",
+        "performer": "TOPE",
         "artist": "TPE1",
+        "albumartist": "TPE2",
         "album": "TALB",
         "copyright": "TCOP",
         "lyrics": "USLT",
         "tracknumber": "TRCK",
+        "track": "TRCK",
         "version": "TIT3",
         "title": "TIT2",
         "isrc": "TSRC",
@@ -58,6 +62,7 @@ class ID3Format(BaseFormat):
         "encodedby": "TENC",
         "organization": "TPUB",
         "discnumber": "TPOS",
+        "disc": "TPOS",
         "bpm": "TBPM",
         }
     writable = True

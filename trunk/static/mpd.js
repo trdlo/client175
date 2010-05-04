@@ -1,31 +1,5 @@
 Ext.Ajax.disableCaching = false
 Ext.namespace('mpd')
-TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
-
-mpd.dbFields = function() {
-    return [
-        {'name': 'id'},
-        {'name': 'file'},
-        {'name': 'directory'},
-        {'name': 'playlist'},
-        {'name': 'type'},
-        {'name': 'pos', 'type': 'int'},
-        {'name': 'artist'},
-        {'name': 'album'},
-        {'name': 'albumartist'},
-        {'name': 'title'},
-        {'name': 'track'},
-        {'name': 'time', 'type': 'int'},
-        {'name': 'ptime'},
-        {'name': 'genre'},
-        {'name': 'date'},
-        {'name': 'composer'},
-        {'name': 'performer'},
-        {'name': 'disc'},
-        {'name': 'cls'},
-        {'name': 'any'}
-    ]
-}
 
 appEvents = {
     _events: {},
@@ -128,6 +102,9 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
             mpd.timer_delay = (mpd.timer_delay > 2950) ? 3000 : mpd.timer_delay * 2
             var t = (mpd.status.state == 'play') ? 300 : mpd.timer_delay
             mpd.checkStatus.delay(t)
+        },
+        failure: function (req, opt) {
+            mpd.checkStatus.delay(3000)
         }
     })
 })
@@ -143,7 +120,13 @@ mpd.cmd = function (aCmd, callBack) {
 				callBack(d)
 			}
             mpd.checkStatus.delay(200)
-        }
+        },
+        failure: function (req, opt) {
+			var m = "The following error was encontered when sending the command:&nbsp;&nbsp;<b>" +
+				aCmd.join(" ") + "</b><br/><br/>"
+			var t = req.responseText || req.responseStatus
+			Ext.Msg.alert("MPD Error", m + t)
+		}
     })
 }
 

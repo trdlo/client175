@@ -1,27 +1,25 @@
 var PAGE_LIMIT = 200
+var TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
+var EXTRA_FIELDS = []
+
 mpd.dbFields = function() {
-    return [
+    var fields = [
         {'name': 'id'},
         {'name': 'file'},
         {'name': 'directory'},
         {'name': 'playlist'},
         {'name': 'type'},
         {'name': 'pos', 'type': 'int'},
-        {'name': 'artist'},
-        {'name': 'album'},
-        {'name': 'albumartist'},
-        {'name': 'title'},
         {'name': 'track'},
+        {'name': 'title'},
+        {'name': 'album'},
+        {'name': 'artist'},
         {'name': 'time', 'type': 'int'},
         {'name': 'ptime'},
-        {'name': 'genre'},
-        {'name': 'date'},
-        {'name': 'composer'},
-        {'name': 'performer'},
-        {'name': 'disc'},
         {'name': 'cls'},
         {'name': 'any'}
     ]
+    return fields.concat(EXTRA_FIELDS)
 }
 
 function renderIcon(val, meta, rec, row, col, store) {
@@ -157,6 +155,8 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             minWidth: 200,
             animCollapse: false,
             items: self.list,
+            forceLayout: true,
+            plugins: [Ext.ux.PanelCollapsedTitle],
             tools: [
                 {
                     id: 'gear',
@@ -419,7 +419,7 @@ mpd.browser.PlaylistToolbar = Ext.extend(Ext.Toolbar, {
                 {
                     xtype: 'textfield',
                     id: 'txtplaylist',
-                    width: 100,
+                    flex: 1,
                     listeners: {
                         afterrender: function (self) {
                             var n = Ext.value(mpd.status.playlistname, 'Untitled')
@@ -429,16 +429,16 @@ mpd.browser.PlaylistToolbar = Ext.extend(Ext.Toolbar, {
                             })
                         }
                     }
-                },
+                }, "->",
                 {
-                    text: 'Save',
+                    iconCls: "icon-save",
                     qtip: 'Save Playlist',
                     handler: function () {
                         mpd.cmd(['save', Ext.getCmp('txtplaylist').getValue()])
                     }
-                }, '-',
+                },
                 {
-                    text: 'Clear',
+                    iconCls: "icon-cancel",
                     qtip: 'Clear Playlist',
                     handler: function () {
                         mpd.cmd(['clear'])
@@ -472,42 +472,50 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                 )  
             })
         } 
+        
+        appEvents.subscribe('playlistchanged', this.db_refresh.createDelegate(this))
+        appEvents.subscribe('db_updatechanged', this.db_refresh.createDelegate(this))
+        
         this.filter = new Ext.app.FilterField({
             store: this.store,
             width:140
         })
-
+		
+		var cols = [
+			{id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
+				renderer: function(val, meta, rec){
+					if (self.cwd == 'home') return ''
+					if (val) {
+						return '<div class="remove">' + val + '.</div>'
+					} else {
+						return '<div class="add">'
+					}
+				}
+			},
+			{id: 'ctrack', header: 'Track', dataIndex: 'track', width: 40, align: 'right', hidden: true},
+			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: renderIcon},
+			{id: 'ctitle', header: "Title", dataIndex: 'title'},
+			{id: 'calbum', header: "Album", dataIndex: 'album'},
+			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
+			{id: 'ctime', header: "Time", width: 40, dataIndex: 'time',
+				renderer: function(val, meta, rec){
+					return rec.data.ptime
+				}
+			}
+		]
+		Ext.each(EXTRA_FIELDS, function(item) {
+			cols.push({
+				header: item.header,
+				dataIndex: item.name,
+				hidden: true
+			})
+		})
+		
         Ext.apply(this, {
             store: this.store,
             region: 'center',
             cm: new Ext.grid.ColumnModel({
-                columns: [
-                    {id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
-                        renderer: function(val, meta, rec){
-                            if (self.cwd == 'home') return ''
-                            if (val) {
-                                return '<div class="remove">' + val + '.</div>'
-                            } else {
-                                return '<div class="add">'
-                            }
-                        }
-                    },
-                    {id: 'ctrack', header: 'Track', dataIndex: 'track', width: 40, align: 'right', hidden: true},
-                    {id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: renderIcon},
-                    {id: 'ctitle', header: "Title", dataIndex: 'title'},
-                    {id: 'calbum', header: "Album", dataIndex: 'album'},
-                    {id: 'cdisc', header: "Disc", dataIndex: 'disc', hidden: true},
-                    {id: 'cdate', header: "Date", dataIndex: 'date', hidden: true},
-                    {id: 'cartist', header: "Artist", dataIndex: 'artist'},
-                    {id: 'ccomposer', header: "Composer", dataIndex: 'composer', hidden: true},
-                    {id: 'cperformer', header: "Performer", dataIndex: 'performer', hidden: true},
-                    {id: 'cgenre', header: "Genre", dataIndex: 'genre', hidden: true},
-                    {id: 'ctime', header: "Time", width: 40, dataIndex: 'time',
-                        renderer: function(val, meta, rec){
-                            return rec.data.ptime
-                        }
-                    }
-                ],
+                columns: cols,
                 defaults: {
                     width: 150,
                     sortable: true
@@ -602,11 +610,12 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                 }
             },
             selModel: new Ext.grid.RowSelectionModel({
+				singleSelect: false,
 				listeners: {
-					'rowselect': function(sm, rowIdx, rec) {
+					'selectionchange': function(sm) {
 						var pg = self.ownerCt.findByType('propertygrid')
 						if (pg.length == 0) return null
-						pg[0].loadRecord(rec)
+						pg[0].loadRecords(sm.getSelections())
 					}
 				}
 			})
@@ -624,7 +633,16 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             Ext.select(".x-grid3-body .simulated_hover", this.el).removeClass('simulated_hover')
             self.selected = []
         }        
-    }
+    },
+    db_refresh: function(){
+		if (this.store.getCount() > 0) {
+			if (!this.store.lastOptions) {
+				this.store.load({params: {start: 0, limit: PAGE_LIMIT}})
+			} else {
+				this.store.reload()
+			}
+		}
+	}
 })
 
 
@@ -634,15 +652,6 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
         mpd.browser.DbBrowser.superclass.constructor.apply(this, arguments);
 
         var self = this
-        appEvents.subscribe('playlistchanged', function(){
-            if (self.store.getCount() > 0) {
-                if (!self.store.lastOptions) {
-                    self.store.load({params: {start: 0, limit: PAGE_LIMIT}})
-                } else {
-                    self.store.reload()
-                }
-            }
-        })
         this.getTopToolbar().add({
             text: "Home",
             handler: function(){ self.goTo('/')}
@@ -765,31 +774,42 @@ Ext.reg('db-browser', mpd.browser.DbBrowser)
 
 mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
     constructor: function(config) {
+		this._pending = 0
 		this.changes = {}
+		this.records = []
+		this.btnReset = new Ext.Button({
+			text: 'Clear Changes',
+			iconCls: "icon-cancel",
+			disabled: true,
+			handler: this.reloadRecords.createDelegate(this)
+		})
 		this.btnSave = new Ext.Button({
 			text: 'Save Changes',
+			iconCls: "icon-save",
 			disabled: true,
 			handler: this.saveChanges.createDelegate(this)
 		})
 		
         Ext.apply(this, {
-			title: 'Tags',
-			bbar: ["->", this.btnSave],
+			title: 'Edit Tags',
+			plugins: [Ext.ux.PanelCollapsedTitle],
+			bbar: ["->", this.btnReset, "-", this.btnSave],
+			iconCls: "icon-edit",
 			listeners: {
 				'beforepropertychange': function(src, key, val, old) {
 					if (key.charAt(0) == "(") return false
 					this.changes[key] = val
 					this.btnSave.enable()
+					this.btnReset.enable()
 				}
 			}
 		})
         Ext.apply(this, config)
         mpd.browser.TagEditor.superclass.constructor.apply(this, arguments);
     },
-    saveChanges: function() {
-		var self = this
-		var src = this.getSource()
-		var d = this.record.data
+    _saveItem: function(rec) {
+		this._pending++
+		var d = rec.data
 		var data = {'itemtype': d.type, 'id': d[d.type]}
 		Ext.apply(data, this.changes)
 		
@@ -797,35 +817,57 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 			url: '../edit',
 			params: data,
 			success: function(response, opts) {
-				var rec = self.record
-				Ext.iterate(self.changes, function (key, val) {
-					rec.data[key.toLowerCase()] = val
-				})
-				rec.commit()
-				self.loadRecord(null)
+				this._pending--
+				if (this._pending < 1) mpd.checkStatus.delay(0)
 			},
 			failure: function(response, opts) {
 				Ext.Msg.alert('Error', response.responseText)
-				self.loadRecord(null)
-			}
+				this._pending--
+				if (this._pending < 1) mpd.checkStatus.delay(0)
+			},
+			scope: this
 		})
 	},
-    loadRecord: function(rec) {
-		if (!rec) {
-			rec = this.record
-		} else {
-			this.record = rec
-		}
-		var data = rec.data
+    saveChanges: function() {
+		Ext.each(this.records, this._saveItem, this)
+	},
+    loadRecords: function(recs) {
+		this._pending = 0
+		this.records = recs
 		var src = {}
-		src['(id)'] = data.type + ":" + data[data.type]
-		Ext.each(TAG_TYPES, function (key) {
-			src[key] = data[key.toLowerCase()]
-		})
+		if (recs.length > 1) {
+			src['(id)'] = '<Multiple Records>'
+			var len = recs.length
+			Ext.each(TAG_TYPES, function (key) {
+				key_lower = key.toLowerCase()
+				val = recs[0].data[key_lower]
+				for (var i=1; i<len; i++) {
+					if (recs[i].data[key_lower] != val) {
+						val = '<Multiple Values>'
+						break
+					}
+				}
+				src[key] = val
+			})
+			this.enable()
+		} else if (recs.length > 0) {
+			data = recs[0].data
+			src['(id)'] = data.type + ":" + data[data.type]
+			Ext.each(TAG_TYPES, function (key) {
+				src[key] = data[key.toLowerCase()]
+			})
+			this.enable()
+		} else {
+			this.disable()
+		}
 		this.btnSave.disable()
+		this.btnReset.disable()
 		this.changes = {}
 		this.setSource(src)
-	}
+	},
+    reloadRecords: function() {
+		this.loadRecords(this.records)
+	}	
 })
 Ext.reg('tag-editor', mpd.browser.TagEditor)
 
@@ -897,8 +939,9 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
 					region: 'east',
 					collapsible: true,
 					collapsed: true,
+					floatable: false,
 					split: true,
-					width: 200
+					width: 220
 				}
 			]
         })
@@ -915,17 +958,7 @@ mpd.browser.TabPlaylist = Ext.extend(mpd.browser.GridBase, {
         config.tbar = new mpd.browser.PlaylistToolbar()
         config.cmd = 'playlistinfo'
         Ext.apply(this, config)
-        mpd.browser.TabPlaylist.superclass.constructor.apply(this, arguments);
-        var self = this
-        appEvents.subscribe('playlistchanged', function(){
-            self.getView().holdPosition = true
-            if (!self.store.lastOptions) {
-                self.store.load({params: {start: 0, limit: PAGE_LIMIT}})
-            } else {
-                self.store.reload()
-            }
-        })
-        
+        mpd.browser.TabPlaylist.superclass.constructor.apply(this, arguments);        
     }
 })
 Ext.reg('tab-playlist', mpd.browser.TabPlaylist)
@@ -935,14 +968,6 @@ mpd.browser.TabSearch = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
         Ext.apply(this, config)
         mpd.browser.TabSearch.superclass.constructor.apply(this, arguments);
-
-        var self = this
-        appEvents.subscribe('playlistchanged', function(){
-            if (self.store.getCount() > 0) {
-                self.getView().holdPosition = true
-                self.store.reload()
-            }
-        })
         this.getTopToolbar().add( new Ext.app.SearchField({store: this.store}) )
     }
 })
@@ -968,6 +993,8 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
         Ext.apply(this, {
             title: 'Navigation',
             //enableDragDrop: true,
+            plugins: [Ext.ux.PanelCollapsedTitle],
+            forceLayout: true,
             autoScroll: true,
             useArrows: true,
             singleExpand: true,

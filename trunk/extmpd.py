@@ -23,6 +23,7 @@
 import cherrypy, json, os
 from time import sleep
 import mpd_proxy2 as mpd_proxy
+from mpd import MPDError
 import lyrics as _lyrics
 from covers import CoverSearch
 
@@ -33,7 +34,7 @@ COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
 cs = CoverSearch(COVERS_DIR)
 
 cherrypy.config.update( {
-    'tools.log_tracebacks.on': True,
+    'tools.log_tracebacks.on': False,
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
@@ -49,6 +50,11 @@ class Root:
             )
 
 
+    def _error_page_501(status, message, traceback, version):
+        return message
+    cherrypy.config.update({'error_page.501': _error_page_501})
+
+        
     def add(self, *args):
         if len(args) == 2:
             if args[0] in ('file', 'directory'):
@@ -91,7 +97,10 @@ class Root:
             ...is equivilant to a GET request to:
                 http://localhost:8080/list/album/artist/David%20Bowie
         """
-        result = mpd.execute(args)
+        try:
+            result = mpd.execute(args)
+        except MPDError, e:
+            raise cherrypy.HTTPError(501, message=str(e))
         return json.dumps(result)
     default.exposed = True
 
@@ -102,7 +111,7 @@ class Root:
             if newname:
                 mpd.rename(id, newname)
             else:
-               raise cherrypy.HTTPError(message="New playlist name not found.")
+               raise cherrypy.HTTPError(501, message="New playlist name not found.")
                
         elif itemtype == 'file':
             loc = os.path.join(MUSIC_DIR, id)
@@ -113,6 +122,7 @@ class Root:
                     tags['tracknumber'] = val
                 else:
                     tags[tag] = val
+            print loc
             print tags
             
             #  Easy version, very limited
@@ -131,7 +141,7 @@ class Root:
             mpd.clear_cache()
             return "OK"
         else:
-            raise cherrypy.HTTPError(message="Editing of type '%s' not supported." % itemtype)
+            raise cherrypy.HTTPError(501, message="Editing of type '%s' not supported." % itemtype)
     edit.exposed = True
 
 

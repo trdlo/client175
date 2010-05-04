@@ -65,18 +65,17 @@ mpd.Controls = Ext.extend(Ext.Container, {
             width: 160,
             height: 62,
             items: [
-				new Ext.SplitButton({
+				new Ext.Button({
                     width: 140,
                     x: 10,
                     y: 4,
 					text: 'Theme Chooser',
+					cls: 'x-toolbar-standardbutton',
 					//handler: optionsHandler, // handle a click on the button itself
 					menu: new Ext.menu.Menu({
 						items: [
-							// these items will render as dropdown menu items when the arrow is clicked:
 							{text: 'Blue Theme', handler: setActiveStyleSheet.createCallback('blue')},
-							{text: 'Gray Theme', handler: setActiveStyleSheet.createCallback('gray')},
-							{text: 'Custom Theme', handler: setActiveStyleSheet.createCallback('yourtheme')}
+							{text: 'Gray Theme', handler: setActiveStyleSheet.createCallback('gray')}
 						]
 					})
 				}),
