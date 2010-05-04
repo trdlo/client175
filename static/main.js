@@ -13,6 +13,7 @@ mpd.init = function(){
                 iconCls: 'icon-directory',
                 region: 'west',
                 collapsible: true,
+                floatable: false,
                 split: true,
                 width: 200
             },
@@ -24,6 +25,7 @@ mpd.init = function(){
                 //playlistStyle: 'albumcovers',
                 iconCls: 'icon-playlist',
                 region: 'east',
+                floatable: false,
                 collapsible: true,
                 split: true,
                 width: 200
@@ -38,8 +40,30 @@ mpd.init = function(){
             }
         ]
     })
-    mpd.cmd(['tagtypes'], function(d){console.log(d);TAG_TYPES = d})
+    mpd.checkStatus.delay(100)
 }
 
-Ext.onReady(mpd.init);
+Ext.onReady(function(){
+    Ext.Ajax.request({
+        url: '../tagtypes',
+        success: function(response, opts) {
+			TAG_TYPES = Ext.util.JSON.decode(response.responseText)
+			// I don't know what the 'Name' tag refers to, but it doesn't
+			// correspond to an editable ID3 tag.
+			TAG_TYPES.remove("Name")			
+			var fields = Ext.pluck(mpd.dbFields(), "name")
+			Ext.each(TAG_TYPES, function(item) {
+				var tag = item.toLowerCase()
+				if (fields.indexOf(tag) == -1) {
+					EXTRA_FIELDS.push({'name': tag, 'header': item})
+				}
+			})
+			mpd.init()
+        },
+        failure: function(response, opts) {
+			Ext.Msg.alert("Error", "Unable to retrieve list of available tag types.")
+			mpd.init()
+		}
+    })	
+});
 

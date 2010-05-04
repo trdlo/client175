@@ -27,241 +27,29 @@
 	<title>ExtMPD</title>
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 	<meta name="generator" content="Geany 0.16" />
+	
+    <!-- Ext base stylesheet -->	
     <link rel="stylesheet" type="text/css" href="ext/resources/css/ext-all.css" />
     
-    	<!-- Theme includes -->
+    <!-- Theme includes -->
     <link rel="stylesheet" type="text/css" title="blue"      href="ext/resources/css/xtheme-blue.css" /> 
     <link rel="stylesheet" type="text/css" title="gray"      href="ext/resources/css/xtheme-gray.css" />
-    <link rel="stylesheet" type="text/css" title="yourtheme" href="ext/resources/css/yourtheme.css" />
 
+    <!-- ExtMPD specific stylesheet -->	
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link rel="stylesheet" type="text/css" href="tb_btn_fix.css" />
+    
     <script src="ext/ext-base.js"></script>
     <script src="ext/ext-all-debug.js"></script>
-    <script src="ext/DataView-more.js"></script>
-    <script src="ext/SearchField.js"></script>
-    <script src="ext/Ext.ux.plugins.PageResizers.js"></script>
-    <script src="styleswitcher.js"></script>
+    <script src="ext/ux/DataView-more.js"></script>
+    <script src="ext/ux/SearchField.js"></script>
+    <script src="ext/ux/Ext.ux.plugins.PageResizers.js"></script>
+    <script src="ext/ux/Ext.ux.PanelCollapsedTitle.js"></script>
+    <script src="ext/ux/styleswitcher.js"></script>
     <script src="mpd.js"></script>
     <script src="mpd.browser.js"></script>
     <script src="mpd.controls.js"></script>
     <script src="main.js"></script>
-    <style>
-    .x-list-body {
-        top:22px;
-        position:absolute;
-        bottom:0px !important;
-    }
-    .x-list-body {
-        border-left: 1px solid #D0D0D0;
-    }
-    .x-list-body dl {
-        border-bottom: 1px solid #D0D0D0;
-    }
-    .albums img {
-        float: left;
-        max-height: 64px;
-        max-width: 64px;
-        margin-right: 6px;
-        margin-bottom: 4px;
-    }
-    .albums .x-list-body dl {
-        background-color: #EBEBEB;
-    }
-    .albums .x-list-body em {
-        padding: 0px !important;
-        margin: 0px !important;
-        overflow: visible;
-    }
-    .albums .x-list-body dt {
-        overflow: visible !important;
-    }
-    .albums .x-list-body em > div {
-        padding: 2px;
-    }
-    div.album-group-track {
-        background-color: white;
-    }
-    .x-list-over div.album-group-track {
-        background-color: #EEEEEE;
-    }
-    .x-list-selected div.album-group-track {
-        background-color: #DFE8F6;
-    }
-    .list-dropover {
-        border-top: 16px solid #C7D3DA !important;
-    }
-    div.album-group-start {
-        background-color: #EBEBEB;
-        padding-left: 4px !important;
-        white-space: normal !important;
-    }
-    div.album-group-end {
-        border-bottom: 1px solid #808080;
-    }
-    
-    #mpd-controls {
-        background-image: none !important;
-        background: transparent !important;
-    }
-    div.x-grid3-col-cicon {padding: 0px; margin: 2px 3px 0px 0px;}
-    .x-grid3-col-csong {font-weight: 800}
-    .x-grid3-col-calbum {font-weight: normal !important}
-    .x-grid3-col-cartist {
-        font-weight: normal !important;
-        font-style: italic !important;
-    }
-    .x-grid3-td-cpos, .x-grid3-col-cpos,
-    .x-grid3-col-cpos > div {
-        height: 18px;
-        width: 18px;
-        margin: 0px;
-        padding: 0px;
-    }
-    div.remove:hover,
-    .simulated_hover div.remove {
-        background: url("images/remove.png") no-repeat left top;
-        text-indent: -100px;
-    }
-    div.add {
-        background: url("images/add_small_inactive.png") no-repeat center;
-    }
-    div.add:hover,
-    .simulated_hover div.add{
-        background: url("images/add_small.png") no-repeat center;
-    }
-    .icon {
-        height: 16px;
-        width: 18px
-    }
-    .icon-add {
-        background: url("images/add_small.png") no-repeat !important;
-        padding-left: 14px !important;
-    }
-    .icon-album {
-        background: url("images/album.png") no-repeat !important;
-    }
-    .icon-artist, .icon-albumartist {
-        background: url("images/artist.png") no-repeat !important;
-        min-width: 18px;
-        margin-right: 4px;
-    }
-    .icon-directory {
-        background: url("images/directory.png") no-repeat !important;
-    }
-    .icon-file {
-        background: url("images/file.png") no-repeat !important;
-    }
-    .icon-genre {
-        background: url("images/genre.png") no-repeat !important;
-    }
-    .icon-date {
-        background: url("images/date.png") no-repeat !important;
-    }
-    .icon-next {
-        background: url("images/next.png") no-repeat !important;
-        height: 22px !important;
-        width: 32px !important;
-    }
-    .icon-repeat {
-        background: url("images/repeat.png") no-repeat !important;
-        padding-left: 20px !important;
-    }
-    .x-btn-pressed .icon-repeat {
-        background-image: url("images/repeat-on.png") !important;
-    }
-    .icon-random {
-        background: url("images/random.png") no-repeat 1px 0px !important;
-        padding-left: 20px !important;
-    }
-    .x-btn-pressed .icon-random {
-        background-image: url("images/random-on.png") !important;
-    }
-    .icon-search {
-        background: url("images/search.png") no-repeat !important;
-    }
-    .icon-pause {
-        background: url("images/pause.png") no-repeat !important;
-        height: 16px !important;
-        width: 16px !important;
-    }
-    .icon-play {
-        background: url("images/play.png") no-repeat !important;
-        height: 42px !important;
-        width: 39px !important;
-    }
-    .icon-playlist {
-        background: url("images/playlist.png") no-repeat !important;
-    }
-    .icon-playlists {
-        background: url("images/playlists.png") no-repeat !important;
-    }
-    .icon-previous {
-        background: url("images/prev.png") no-repeat !important;
-        height: 22px !important;
-        width: 32px !important;
-    }
-    .icon-stop {
-        background: url("images/stop.png") no-repeat !important;
-        height: 16px !important;
-        width: 16px !important;
-    }
-    .group-by-letter {
-        background-color: #EFF0FA;
-    }
-    .x-tree-node {
-        margin-top: 1px;
-        margin-bottom: 0px;
-    }
-    .x-tab-strip-text {
-        background-repeat: no-repeat;
-        background-position: 0 6px !important;
-        padding-left: 19px !important;
-        height: 18px;
-    }
-    #dbtabbrowser__new_tab .x-tab-right {
-        width: 25px !important;
-    }
-    .icon-newtab {
-        background: url("images/newtab.png");
-        padding-left: 16px !important;
-    }
-    .x-tab-strip-text {
-        background-position: 0 3px !important;
-        margin-top: 2px !important;
-        height: 16px;
-    }
-    .x-tab-strip-over .icon-newtab {
-        background-image: url("images/newtab-over.png") !important;
-    }
-    .compact_list div.thumb {
-        max-width: 200px;
-    }
-    .compact_list {
-        position: relative;
-        font-size:10px;
-       -moz-user-select: none;
-       -khtml-user-select: none;
-       user-select: none;
-    }
-    .compact_list .thumb-wrap{
-        border:1px solid transparent;
-    }
-    .compact_list .thumb{
-        margin-right: 4px;
-        cursor: default;
-    }
-    .compact_list .x-view-over{
-        border:1px solid #dddddd;
-        background-color: #efefef;
-    }
-
-    .compact_list .x-view-selected{
-        background-color: #eff5fb;
-        border:1px solid #99bbe8;
-    }
-    .compact_list .x-view-selected .thumb{
-        background:transparent;
-    }
-    </style>
 </head>
 
 <body>
