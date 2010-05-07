@@ -63,6 +63,8 @@ Ext.ux.PanelCollapsedTitle = (function() {
     };
     this.collapsedIconCls = this.collapsedIconCls || this.iconCls
     if (this.collapsedIconCls) this.setCollapsedIconClass(this.collapsedIconCls);
+    // Sets click on collpased header = toggleCollapse
+    if (!this.floating) Ext.fly(this.collapsedHeader).on('click', this.toggleCollapse.createDelegate(this))
   };
   this.init = function(p) {
     if (p.collapsible) {
@@ -113,6 +115,7 @@ Ext.ux.PanelCollapsedTitle = (function() {
           // the panel's container first needs to render/layout its collapsed title bars
           this.ownerCt.on('afterlayout', patchCollapsedElem, p, {single:true});
         };
+        
       }, p);
     }
   };

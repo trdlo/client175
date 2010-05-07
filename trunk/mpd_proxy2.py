@@ -209,7 +209,7 @@ class _Mpd_Instance:
         
         
     def clear_cache(self):
-		self._dbcache = {}
+        self._dbcache = {}
         
         
     def command_list_ok_begin(self):
@@ -346,9 +346,9 @@ class _Mpd_Instance:
 
 
     def sync(self, force=False):
+        n = datetime.utcnow()
         if not force:
             # One update per 100 milliseconds is more than enough.
-            n = datetime.utcnow()
             dif = n - self.state_stamp
             if dif.microseconds < 100000:
                 return self.state

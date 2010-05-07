@@ -47,15 +47,15 @@ Ext.onReady(function(){
     Ext.Ajax.request({
         url: '../tagtypes',
         success: function(response, opts) {
-			TAG_TYPES = Ext.util.JSON.decode(response.responseText)
+			mpd.TAG_TYPES = Ext.util.JSON.decode(response.responseText)
 			// I don't know what the 'Name' tag refers to, but it doesn't
 			// correspond to an editable ID3 tag.
-			TAG_TYPES.remove("Name")			
+			mpd.TAG_TYPES.remove("Name")			
 			var fields = Ext.pluck(mpd.dbFields(), "name")
-			Ext.each(TAG_TYPES, function(item) {
+			Ext.each(mpd.TAG_TYPES, function(item) {
 				var tag = item.toLowerCase()
 				if (fields.indexOf(tag) == -1) {
-					EXTRA_FIELDS.push({'name': tag, 'header': item})
+					mpd.EXTRA_FIELDS.push({'name': tag, 'header': item})
 				}
 			})
 			mpd.init()
