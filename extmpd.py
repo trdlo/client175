@@ -114,31 +114,32 @@ class Root:
                raise cherrypy.HTTPError(501, message="New playlist name not found.")
                
         elif itemtype == 'file':
-            loc = os.path.join(MUSIC_DIR, id)
-            tags = {}
-            for tag, val in kwargs.items():
-                tag = tag.lower()
-                if tag == 'track':
-                    tags['tracknumber'] = val
-                else:
-                    tags[tag] = val
-            print loc
-            print tags
-            
-            #  Easy version, very limited
-            #
-            #f = EasyID3(loc)
-            #for tag, val in kwargs.items():
-                #if tag.lower() == 'track':
-                    #tag = 'tracknumber'
-                #f[tag] = val
-            #f.save()
-            
-            f = metadata.get_format(loc)
-            f.write_tags(tags)
-            
-            mpd.update(id)
-            mpd.clear_cache()
+            ids = id.split(";")
+            for id in ids:
+                loc = os.path.join(MUSIC_DIR, id)
+                tags = {}
+                for tag, val in kwargs.items():
+                    tag = tag.lower()
+                    if tag == 'track':
+                        tags['tracknumber'] = val
+                    elif tag == 'disc':
+                        tags['discnumber'] = val
+                    else:
+                        tags[tag] = val
+                
+                f = metadata.get_format(loc)
+                f.write_tags(tags)
+                
+                updated = False
+                while not updated:
+                    try:
+                        mpd.update(id)
+                        updated = True
+                    except MPDError, e:
+                        if str(e) == "[54@0] {update} already updating":
+                            sleep(0.01)
+                        else:
+                            break
             return "OK"
         else:
             raise cherrypy.HTTPError(501, message="Editing of type '%s' not supported." % itemtype)
@@ -195,26 +196,28 @@ class Root:
         data = mpd.playlistinfo()
         if data and kwargs.get('albumheaders'):
             result = []
+            g = data[0].get
             a = {
-                'album': data[0].get('album', 'Unknown'),
-                'artist': data[0].get('artist', 'Unknown'),
+                'album': g('album', 'Unknown'),
+                'artist': g('albumartist', g('artist', 'Unknown')),
                 'cls': 'album-group-start',
                 'id': 'aa0'
             }       
             i = 0
             result.append(a)
             for d in data:
-                if a['album'] != d.get('album', 'Unknown'):
+                g = d.get
+                if a['album'] != g('album', 'Unknown'):
                     result[-1]['cls'] = 'album-group-end album-group-track'
                     i += 1
                     a = {
-                        'album': d.get('album', 'Unknown'),
-                        'artist': d.get('artist', 'Unknown'),
+                        'album': g('album', 'Unknown'),
+                        'artist': g('albumartist', g('artist', 'Unknown')),
                         'cls': 'album-group-start',
                         'id': 'aa%d' % i
                     }
                     result.append(a)
-                elif a['artist'] != d.get('artist', 'Unknown'):
+                elif a['artist'] != g('albumartist', g('artist', 'Unknown')):
                     a['artist'] = 'Various Artists'
                     
                 d['cls'] = 'album-group-track'
@@ -254,7 +257,7 @@ class Root:
     def status(self, **kwargs):
         mpd.sync()
         n = 0
-        while n < 100:
+        while n < 50:
             for k, v in mpd.state.items():
                 if k <> 'uptime' and kwargs.get(k, '') <> str(v):
                     print '%s: %s <> %s' % (k, kwargs.get(k, ''), str(v))

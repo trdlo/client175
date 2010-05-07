@@ -1,5 +1,7 @@
 Ext.Ajax.disableCaching = false
 Ext.namespace('mpd')
+Ext.namespace('console')
+console.log = console.log || Ext.emptyFn
 
 appEvents = {
     _events: {},

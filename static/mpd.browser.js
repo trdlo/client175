@@ -1,6 +1,7 @@
-var PAGE_LIMIT = 200
-var TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
-var EXTRA_FIELDS = []
+Ext.namespace('mpd.browser')
+mpd.PAGE_LIMIT = 200
+mpd.TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
+mpd.EXTRA_FIELDS = []
 
 mpd.dbFields = function() {
     var fields = [
@@ -19,7 +20,7 @@ mpd.dbFields = function() {
         {'name': 'cls'},
         {'name': 'any'}
     ]
-    return fields.concat(EXTRA_FIELDS)
+    return fields.concat(mpd.EXTRA_FIELDS)
 }
 
 function renderIcon(val, meta, rec, row, col, store) {
@@ -59,7 +60,7 @@ function showImage(el) {
         y: 60
     }).show(el)
 }
-Ext.namespace('mpd.browser')
+
 
 Ext.override(Ext.grid.GridView, {
     holdPosition: false,
@@ -153,7 +154,6 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             title: 'Playlist',
             layout: 'fit',
             minWidth: 200,
-            animCollapse: false,
             items: self.list,
             forceLayout: true,
             plugins: [Ext.ux.PanelCollapsedTitle],
@@ -503,7 +503,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				}
 			}
 		]
-		Ext.each(EXTRA_FIELDS, function(item) {
+		Ext.each(mpd.EXTRA_FIELDS, function(item) {
 			cols.push({
 				header: item.header,
 				dataIndex: item.name,
@@ -529,7 +529,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             //enableDragDrop: true,
             tbar: new Ext.Toolbar(),
             bbar: new Ext.PagingToolbar({
-				pageSize: PAGE_LIMIT,
+				pageSize: mpd.PAGE_LIMIT,
 				store: this.store,
 				displayInfo: true,
 				displayMsg: 'Displaying items {0} - {1} of {2}',
@@ -608,17 +608,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                     var row = self.getStore().getAt(rowIdx).data
                     self.goTo(row)
                 }
-            },
-            selModel: new Ext.grid.RowSelectionModel({
-				singleSelect: false,
-				listeners: {
-					'selectionchange': function(sm) {
-						var pg = self.ownerCt.findByType('propertygrid')
-						if (pg.length == 0) return null
-						pg[0].loadRecords(sm.getSelections())
-					}
-				}
-			})
+            }
         });
         Ext.apply(this, config)
         mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
@@ -632,12 +622,21 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         this.onHoverOut = function(evt, el) {
             Ext.select(".x-grid3-body .simulated_hover", this.el).removeClass('simulated_hover')
             self.selected = []
-        }        
+        }   
+        
+		var tagLoader = new Ext.util.DelayedTask(function() {
+			var pg = self.ownerCt.findByType('propertygrid')
+			if (pg.length == 0) return null
+			pg[0].loadRecords(sm.getSelections())
+		})
+		sm.on('selectionchange', function() {
+			tagLoader.delay(300)
+		})
     },
     db_refresh: function(){
 		if (this.store.getCount() > 0) {
 			if (!this.store.lastOptions) {
-				this.store.load({params: {start: 0, limit: PAGE_LIMIT}})
+				this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
 			} else {
 				this.store.reload()
 			}
@@ -701,7 +700,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
         var t = '/'
         if (dir != this.cwd || isSearch) {
             if (!isSearch) this.cwd = dir
-            store.load({params:{start:0, limit:PAGE_LIMIT}})
+            store.load({params:{start:0, limit:mpd.PAGE_LIMIT}})
 
             // Remove any existing Path buttons
             btn = tb.getComponent(1)
@@ -807,59 +806,89 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
         Ext.apply(this, config)
         mpd.browser.TagEditor.superclass.constructor.apply(this, arguments);
     },
-    _saveItem: function(rec) {
-		this._pending++
-		var d = rec.data
+    saveChanges: function() {
+		var r = this.records
+		var d = r[0].data
 		var data = {'itemtype': d.type, 'id': d[d.type]}
+		if (r.length > 1) {
+			files = []
+			Ext.each(r, function(item) {
+				files.push(item.data.file)
+			})
+			data.id = files.join(";")
+		}
 		Ext.apply(data, this.changes)
 		
 		Ext.Ajax.request({
 			url: '../edit',
 			params: data,
 			success: function(response, opts) {
-				this._pending--
-				if (this._pending < 1) mpd.checkStatus.delay(0)
+				mpd.checkStatus.delay(0)
 			},
 			failure: function(response, opts) {
 				Ext.Msg.alert('Error', response.responseText)
-				this._pending--
-				if (this._pending < 1) mpd.checkStatus.delay(0)
+				mpd.checkStatus.delay(0)
 			},
 			scope: this
 		})
 	},
-    saveChanges: function() {
-		Ext.each(this.records, this._saveItem, this)
-	},
-    loadRecords: function(recs) {
-		this._pending = 0
+    loadRecords: function(records) {
+		// Filter recods for file(s) or a single playlist selection
+		var recs = []
+		if (Ext.isArray(records)) {
+			var len = records.length 
+			if (len > 1) {
+				Ext.each(records, function(item) {
+					if (item.data.type == 'file') recs.push(item)
+				})
+			} else if (len == 1) {
+				var t = records[0].data.type
+				if (t == 'file' || t == 'playlist') recs = records
+			}
+		}
 		this.records = recs
+		
+		// Destroy old editors
+		this.customEditors = this.customEditors || {}
+		Ext.iterate(this.customEditors, function(key, item, obj){
+			item.destroy.apply(item)
+			delete obj[key]
+		})
+		
+		var len = recs.length
 		var src = {}
-		if (recs.length > 1) {
-			src['(id)'] = '<Multiple Records>'
-			var len = recs.length
-			Ext.each(TAG_TYPES, function (key) {
+		if (len > 1) {
+			src['(file)'] = '<Multiple Records>'
+			Ext.each(mpd.TAG_TYPES, function (key) {
 				key_lower = key.toLowerCase()
-				val = recs[0].data[key_lower]
-				for (var i=1; i<len; i++) {
-					if (recs[i].data[key_lower] != val) {
-						val = '<Multiple Values>'
-						break
-					}
+				var vals = []
+				for (var i=0; i<len; i++) {
+					vals.push(recs[i].data[key_lower])
 				}
-				src[key] = val
-			})
-			this.enable()
-		} else if (recs.length > 0) {
+				vals = Ext.unique(vals)
+				if (vals.length > 1) {
+					vals.unshift('<Multiple Values>')
+					var ed = new Ext.form.ComboBox({
+						typeAhead: true,
+						triggerAction: 'all',
+						lazyRender:true,
+						mode: 'local',
+						store: vals
+					})
+					this.customEditors[key] = new Ext.grid.GridEditor(ed)
+				}
+				src[key] = vals[0]
+			}, this)
+		} else if (len > 0) {
 			data = recs[0].data
-			src['(id)'] = data.type + ":" + data[data.type]
-			Ext.each(TAG_TYPES, function (key) {
+			src['('+data.type+')'] = data[data.type]
+			Ext.each(mpd.TAG_TYPES, function (key) {
 				src[key] = data[key.toLowerCase()]
 			})
-			this.enable()
-		} else {
-			this.disable()
 		}
+		
+		// Reset state and load new values
+		this._pending = 0
 		this.btnSave.disable()
 		this.btnReset.disable()
 		this.changes = {}
@@ -916,7 +945,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         if (atab) return atab.get(0)
         return null
     },
-    getActiveTagGrid: function () {
+    getActiveTagEditor: function () {
         var atab = this._getActiveTab()
         if (atab) return atab.get(1)
         return null
