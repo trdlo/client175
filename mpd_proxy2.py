@@ -119,6 +119,7 @@ class _Mpd_Instance:
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
         self.lock = threading.RLock()
         self._connect()
+        self.hold = False
         self.sync(True)
 
 
@@ -346,6 +347,9 @@ class _Mpd_Instance:
 
 
     def sync(self, force=False):
+        if self.hold:
+            return self.state
+            
         n = datetime.utcnow()
         if not force:
             # One update per 100 milliseconds is more than enough.

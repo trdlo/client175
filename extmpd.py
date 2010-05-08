@@ -22,6 +22,7 @@
 
 import cherrypy, json, os
 from time import sleep
+from datetime import datetime, timedelta
 import mpd_proxy2 as mpd_proxy
 from mpd import MPDError
 import lyrics as _lyrics
@@ -115,8 +116,9 @@ class Root:
                
         elif itemtype == 'file':
             ids = id.split(";")
-            for id in ids:
-                loc = os.path.join(MUSIC_DIR, id)
+            try:
+                mpd.hold = True
+                sleep_time = 0.5
                 tags = {}
                 for tag, val in kwargs.items():
                     tag = tag.lower()
@@ -126,20 +128,34 @@ class Root:
                         tags['discnumber'] = val
                     else:
                         tags[tag] = val
-                
-                f = metadata.get_format(loc)
-                f.write_tags(tags)
-                
-                updated = False
-                while not updated:
-                    try:
-                        mpd.update(id)
-                        updated = True
-                    except MPDError, e:
-                        if str(e) == "[54@0] {update} already updating":
-                            sleep(0.01)
-                        else:
-                            break
+                        
+                for id in ids:
+                    if not id.lower().endswith(".wav"):
+                        sleep_time += 0.1
+                        loc = os.path.join(MUSIC_DIR, id)
+                        f = metadata.get_format(loc)
+                        f.write_tags(tags)
+                        
+                        updated = False
+                        while not updated:
+                            try:
+                                mpd.update(id)
+                                updated = True
+                            except MPDError, e:
+                                if str(e) == "[54@0] {update} already updating":
+                                    sleep(0.01)
+                                else:
+                                    print e
+                                    break
+            finally:
+                # Sleep to let all of the updates go through and avoid
+                # forcing too many db_update refreshes.
+                if sleep_time > 2:
+                    sleep(2)
+                else:
+                    sleep(sleep_time)
+                mpd.hold = False
+                    
             return "OK"
         else:
             raise cherrypy.HTTPError(501, message="Editing of type '%s' not supported." % itemtype)
