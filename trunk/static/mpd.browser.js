@@ -800,6 +800,9 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 					this.changes[key] = val
 					this.btnSave.enable()
 					this.btnReset.enable()
+				},
+				'afterrender': function () {
+					this.loadMask = new Ext.LoadMask(this.bwrap, {msg:"Saving Changes..."});
 				}
 			}
 		})
@@ -807,6 +810,7 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
         mpd.browser.TagEditor.superclass.constructor.apply(this, arguments);
     },
     saveChanges: function() {
+		this.loadMask.show()
 		var r = this.records
 		var d = r[0].data
 		var data = {'itemtype': d.type, 'id': d[d.type]}
@@ -824,10 +828,12 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 			params: data,
 			success: function(response, opts) {
 				mpd.checkStatus.delay(0)
+				this.loadMask.hide()
 			},
 			failure: function(response, opts) {
 				Ext.Msg.alert('Error', response.responseText)
 				mpd.checkStatus.delay(0)
+				this.loadMask.hide()
 			},
 			scope: this
 		})
