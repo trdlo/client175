@@ -156,7 +156,6 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
             minWidth: 200,
             items: self.list,
             forceLayout: true,
-            plugins: [Ext.ux.PanelCollapsedTitle],
             tools: [
                 {
                     id: 'gear',
@@ -625,9 +624,11 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         }   
         
 		var tagLoader = new Ext.util.DelayedTask(function() {
-			var pg = self.ownerCt.findByType('propertygrid')
-			if (pg.length == 0) return null
-			pg[0].loadRecords(sm.getSelections())
+			var recs = sm.getSelections()
+			var ed = Ext.getCmp('tageditor')
+			var ip = Ext.getCmp('infopanel')
+			if (ed) ed.loadRecords(recs)
+			if (ip) ip.loadRecord(recs[0])
 		})
 		sm.on('selectionchange', function() {
 			tagLoader.delay(300)
@@ -773,7 +774,6 @@ Ext.reg('db-browser', mpd.browser.DbBrowser)
 
 mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
     constructor: function(config) {
-		this._pending = 0
 		this.changes = {}
 		this.records = []
 		this.btnReset = new Ext.Button({
@@ -790,8 +790,8 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		})
 		
         Ext.apply(this, {
+			id: 'tageditor',
 			title: 'Edit Tags',
-			plugins: [Ext.ux.PanelCollapsedTitle],
 			bbar: ["->", this.btnReset, "-", this.btnSave],
 			iconCls: "icon-edit",
 			listeners: {
@@ -842,15 +842,9 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		// Filter recods for file(s) or a single playlist selection
 		var recs = []
 		if (Ext.isArray(records)) {
-			var len = records.length 
-			if (len > 1) {
-				Ext.each(records, function(item) {
-					if (item.data.type == 'file') recs.push(item)
-				})
-			} else if (len == 1) {
-				var t = records[0].data.type
-				if (t == 'file' || t == 'playlist') recs = records
-			}
+			Ext.each(records, function(item) {
+				if (item.data.type == 'file') recs.push(item)
+			})
 		}
 		this.records = recs
 		
@@ -894,7 +888,6 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		}
 		
 		// Reset state and load new values
-		this._pending = 0
 		this.btnSave.disable()
 		this.btnReset.disable()
 		this.changes = {}
@@ -905,6 +898,60 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 	}	
 })
 Ext.reg('tag-editor', mpd.browser.TagEditor)
+
+
+mpd.browser.InfoPanel = Ext.extend(Ext.Panel, {
+    constructor: function(config) {
+        Ext.apply(this, {
+			id: 'infopanel',
+			title: 'Cover &amp; Lyrics',
+			iconCls: 'icon-cover',
+			autoScroll: true,
+			tpl: new Ext.XTemplate('<div style="font-size:11px">',
+				'<center class="x-toolbar">',
+				'<img onclick="showImage(this)" style="max-width:95%;margin-top:5px" src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}"><br/>',
+				'{album}<tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>',
+				'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/>by </tpl>',
+				'<i>{artist}</i>',
+				'</center><br/>',
+				'<div style="padding:5px"><hr/><br/>',
+				'Lyrics for <b>"{title}"</b>:<br/><br/>',
+				'<p id="lyricsBox"/>',
+				'</div></div>'
+			)
+		})
+			
+        Ext.apply(this, config)
+        mpd.browser.InfoPanel.superclass.constructor.apply(this, arguments);
+	},
+	loadRecord: function(rec) {
+		if (!rec || !rec.data) return null
+		var d = rec.data
+		if (d.type != 'file') return null
+		
+		this.update(d)
+		Ext.Ajax.request({
+			url: '../lyrics',
+			params: {
+				'title': d.title,
+				'artist': d.artist
+			},
+			success: function(response, opts) {
+				r = Ext.util.JSON.decode(response.responseText)
+				var lb = Ext.getDom("lyricsBox", this.el.dom)
+				var lnk = '<br><br><a style="font-size:9px" target="_blank" href="' + r.url + '">'+ r.url + '</a>'
+				lb.innerHTML = r.lyrics + lnk
+			},
+			failure: function(response, opts) {
+				var lb = Ext.getDom("lyricsBox", this.el.dom)
+				lb.innerHTML = response.responseText
+			},
+			scope: this
+		})
+		this.doLayout()
+	}		
+})
+Ext.reg('info-panel', mpd.browser.InfoPanel)
 
 
 mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
@@ -951,34 +998,15 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         if (atab) return atab.get(0)
         return null
     },
-    getActiveTagEditor: function () {
-        var atab = this._getActiveTab()
-        if (atab) return atab.get(1)
-        return null
-    },
     addTab: function (dir, disableClose) {
         var idx = this.items.length - 1
         dir = dir || '/'
         var t = this.insert(idx, {
-            title: 'Home',
-            layout: 'border',
-            iconCls: 'icon-directory',
-            closable: !disableClose,
-            items: [
-				{
-					xtype: 'db-browser',
-					region: 'center'
-				},
-				{
-					xtype: 'tag-editor',
-					region: 'east',
-					collapsible: true,
-					collapsed: true,
-					floatable: false,
-					split: true,
-					width: 220
-				}
-			]
+			layout: 'fit',
+			iconCls: 'icon-directory',
+			title: 'Home',
+			closable: !disableClose,
+			items: {xtype: 'db-browser'}
         })
         this.setActiveTab(t)
         t.get(0).goTo(dir)
