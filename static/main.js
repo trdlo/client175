@@ -17,19 +17,29 @@ mpd.init = function(){
                 split: true,
                 width: 200
             },
-            {
-                xtype: 'playlist_sidebar',
-                //playlistStyle: 'titles',
-                //playlistStyle: '3line',
-                playlistStyle: 'albums',
-                //playlistStyle: 'albumcovers',
-                iconCls: 'icon-playlist',
-                region: 'east',
-                floatable: false,
-                collapsible: true,
-                split: true,
-                width: 200
-            },
+			{
+				region: 'east',
+				layout: 'accordion',
+				split: true,
+				minWidth: 200,
+				width: 300,    
+				layoutConfig: {
+					activeOnTop: true,
+					hideCollapseTool: true
+				},
+				items: [
+					{
+						xtype: 'playlist_sidebar',
+						//playlistStyle: 'titles',
+						//playlistStyle: '3line',
+						playlistStyle: 'albums',
+						//playlistStyle: 'albumcovers',
+						iconCls: 'icon-playlist',
+					},
+					{xtype: 'info-panel'},
+					{xtype: 'tag-editor'}
+				]
+			},
             {
                 layout: 'fit',
                 region: 'center',

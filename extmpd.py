@@ -196,9 +196,10 @@ class Root:
     index.exposed = True
 
 
-    def lyrics(self, title, artist=''):
+    def lyrics(self, title, artist='', **kwargs):
         response = _lyrics.find(title, artist)
-        return json.dumps(response)
+        d = response.toDict()
+        return json.dumps(d)
     lyrics.exposed = True
 
 
