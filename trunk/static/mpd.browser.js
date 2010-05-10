@@ -217,6 +217,8 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                         tpl:
                         '<tpl if="title">' +
                             '<div id="{id}" class="remove {cls}">{pos}.</div>' +
+                        '</tpl><tpl if="!title">' +
+                            '<div class="{cls}">&nbsp;</div>' +
                         '</tpl>'
                     },
                     {
@@ -909,12 +911,12 @@ mpd.browser.InfoPanel = Ext.extend(Ext.Panel, {
 			autoScroll: true,
 			tpl: new Ext.XTemplate('<div style="font-size:11px">',
 				'<center class="x-toolbar">',
-				'<img onclick="showImage(this)" style="max-width:95%;margin-top:5px" src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}"><br/>',
+				'<img onclick="showImage(this)" style="max-width:95%;max-height:256px;margin-top:5px" src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}"><br/>',
 				'{album}<tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>',
 				'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/>by </tpl>',
 				'<i>{artist}</i>',
 				'</center><br/>',
-				'<div style="padding:5px"><hr/><br/>',
+				'<div style="padding:5px">',
 				'Lyrics for <b>"{title}"</b>:<br/><br/>',
 				'<p id="lyricsBox"/>',
 				'</div></div>'
