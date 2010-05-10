@@ -954,6 +954,37 @@ mpd.browser.InfoPanel = Ext.extend(Ext.Panel, {
 Ext.reg('info-panel', mpd.browser.InfoPanel)
 
 
+// Remove the x-accordion-hd class to make it more attractive...
+Ext.override(Ext.layout.Accordion, {
+	renderItem : function(c){
+        if(this.animate === false){
+            c.animCollapse = false;
+        }
+        c.collapsible = true;
+        if(this.autoWidth){
+            c.autoWidth = true;
+        }
+        if(this.titleCollapse){
+            c.titleCollapse = true;
+        }
+        if(this.hideCollapseTool){
+            c.hideCollapseTool = true;
+        }
+        if(this.collapseFirst !== undefined){
+            c.collapseFirst = this.collapseFirst;
+        }
+        if(!this.activeItem && !c.collapsed){
+            this.setActiveItem(c, true);
+        }else if(this.activeItem && this.activeItem != c){
+            c.collapsed = true;
+        }
+        Ext.layout.AccordionLayout.superclass.renderItem.apply(this, arguments);
+        //c.header.addClass('x-accordion-hd');
+        c.on('beforeexpand', this.beforeExpand, this);
+    }
+})
+
+
 mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
     constructor: function(config) {
         var self = this

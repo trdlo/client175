@@ -1,4 +1,7 @@
-
+.x-accordion-hd {
+    font-size: 12px;
+    font-weight: bold;
+}
 .x-list-body {
 	top:22px;
 	position:absolute;
@@ -100,6 +103,9 @@ div.add:hover,
 }
 .icon-cancel {
 	background: url("images/cancel.png") no-repeat !important;
+}
+.icon-cover {
+	background: url("images/picture.png") no-repeat !important;
 }
 .icon-directory {
 	background: url("images/directory.png") no-repeat !important;
