@@ -74,8 +74,14 @@ mpd.Controls = Ext.extend(Ext.Container, {
 					//handler: optionsHandler, // handle a click on the button itself
 					menu: new Ext.menu.Menu({
 						items: [
-							{text: 'Blue Theme', handler: setActiveStyleSheet.createCallback('blue')},
-							{text: 'Gray Theme', handler: setActiveStyleSheet.createCallback('gray')}
+							{text: 'Ambience', handler: setActiveStyleSheet.createCallback('ambience')},
+							{text: 'Blue', handler: setActiveStyleSheet.createCallback('blue')},
+							{text: 'Dark (dcs)', handler: setActiveStyleSheet.createCallback('dcs')},
+							{text: 'Gray', handler: setActiveStyleSheet.createCallback('gray')},
+							{text: 'Gray Extend', handler: setActiveStyleSheet.createCallback('grayx')},
+							{text: 'Human', handler: setActiveStyleSheet.createCallback('human')},
+							{text: 'Slate', handler: setActiveStyleSheet.createCallback('slate')},
+							{text: 'TargetProcess', handler: setActiveStyleSheet.createCallback('tp')}
 						]
 					})
 				}),
