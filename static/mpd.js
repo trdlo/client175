@@ -101,8 +101,14 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
                 }
             })
             Ext.each(changed, function(k) {appEvents.fire(k+'changed')} )
-            mpd.timer_delay = (mpd.timer_delay > 2950) ? 3000 : mpd.timer_delay * 2
-            var t = (mpd.status.state == 'play') ? 300 : mpd.timer_delay
+            var t = mpd.timer_delay || 100
+            if (mpd.status.state == 'play') {
+				t = 100
+			} else {
+				t = (t > 3000) ? 3000 : t
+				mpd.timer_delay = t * 2
+			}
+			
             mpd.checkStatus.delay(t)
         },
         failure: function (req, opt) {
@@ -113,7 +119,7 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 
 
 mpd.cmd = function (aCmd, callBack) {
-    mpd.timer_delay = 75
+    mpd.timer_delay = 100
     Ext.Ajax.request({
         url: '../' + aCmd.join("/"),
         success: function(response, opts) {
