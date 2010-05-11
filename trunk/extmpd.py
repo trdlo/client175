@@ -29,7 +29,6 @@ import lyrics as _lyrics
 from covers import CoverSearch
 
 mpd = mpd_proxy.Mpd()
-MUSIC_DIR = "/home/chris/Music"
 LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
 COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
 cs = CoverSearch(COVERS_DIR)
@@ -39,6 +38,9 @@ cherrypy.config.update( {
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
+cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
+MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
+COVERS_DIR = cherrypy.config.get('covers_directory', COVERS_DIR)
 
 import metadata
 from metadata._base import NotReadable, NotWritable
@@ -274,12 +276,12 @@ class Root:
     def status(self, **kwargs):
         mpd.sync()
         n = 0
-        while n < 50:
+        while mpd.state['state'] == 'play' and n < 25:
             for k, v in mpd.state.items():
                 if k <> 'uptime' and kwargs.get(k, '') <> str(v):
                     print '%s: %s <> %s' % (k, kwargs.get(k, ''), str(v))
                     return json.dumps(mpd.state)
-            sleep(0.11)
+            sleep(0.1)
             n += 1
             mpd.sync()
         return json.dumps(mpd.state)
