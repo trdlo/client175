@@ -17,41 +17,22 @@
 	float: left;
 	max-height: 64px;
 	max-width: 64px;
+	margin: 2px;
 	margin-right: 6px;
-	margin-bottom: 4px;
-}
-.albums .x-list-body dl {
-	background-color: #EBEBEB;
 }
 .albums .x-list-body em {
 	padding: 0px !important;
 	margin: 0px !important;
-	overflow: visible;
-}
-.albums .x-list-body dt {
-	overflow: visible !important;
 }
 .albums .x-list-body em > div {
 	padding: 2px;
 }
-div.album-group-track {
-	background-color: white;
-}
-.x-list-over div.album-group-track {
-	background-color: #EEEEEE;
-}
-.x-list-selected div.album-group-track {
-	background-color: #DFE8F6;
-}
 .list-dropover {
 	border-top: 16px solid #C7D3DA !important;
 }
+
 div.album-group-start {
-	background-color: #EBEBEB;
 	white-space: normal !important;
-}
-div.album-group-end {
-	border-bottom: 1px solid #808080;
 }
 
 #mpd-controls {

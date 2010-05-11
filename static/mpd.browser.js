@@ -198,7 +198,7 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                     {
                         header: "#",
                         dataIndex: 'pos',
-                        width: 0.125,
+                        width: 0.1,
                         tpl: '<div id="{id}" class="remove">{pos}.</div>'
                     },
                     {
@@ -213,20 +213,25 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                     {
                         header: "#",
                         dataIndex: 'position',
-                        width: 0.125,
+                        width: 0.1,
                         tpl:
                         '<tpl if="title">' +
                             '<div id="{id}" class="remove {cls}">{pos}.</div>' +
                         '</tpl><tpl if="!title">' +
-                            '<div class="{cls}">&nbsp;</div>' +
+                            '<div " class="x-toolbar {cls}">&nbsp;' +
+                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/>&nbsp;</tpl>' +
+                            '</div>' +
                         '</tpl>'
                     },
                     {
                         header: 'Song',
                         dataIndex: 'title',
                         tpl:
-                        '<div class="{cls}">{title}' +
+                        '<tpl if="title">' +
+							'<div class="{cls}">{title}' +
+						'</tpl>' +
                         '<tpl if="!title">' +
+							'<div class="x-toolbar {cls}">' +
                             '<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
                             '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
                             '<i>{artist}</i>' +
@@ -241,24 +246,30 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                     {
                         header: "#",
                         dataIndex: 'pos',
-                        width: 0.125,
+                        width: 0.1,
                         tpl:
                         '<tpl if="title">' +
-                            '<div id="{pl}" class="remove {cls}">{pos}.</div>' +
+                            '<div id="{id}" class="remove {cls}">{pos}.</div>' +
+                        '</tpl><tpl if="!title">' +
+                            '<div class="x-toolbar {cls}" style="height:68px;">' +
+                            '</div>' +
                         '</tpl>'
                     },
                     {
                         header: 'Song',
                         dataIndex: 'title',
                         tpl:
-                        '<div class="{cls}">{title}' +
-                        '<tpl if="cls == \'album-group-start\'">' +
-                            '<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
-                            '<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
-                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
-                            '<i>{artist}</i>' +
-                        '</tpl>' +
-                        '</div>'
+                        '<tpl if="title">' +
+							'<div class="{cls}">{title}</div>' +
+						'</tpl>' +
+                        '<tpl if="!title">' +
+							'<div class="x-toolbar {cls}" style="height:68px;">' +
+								'<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
+								'<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
+								'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
+								'<i>{artist}</i>' +
+							'</div>' +
+                        '</tpl>'
                     }
                 ]
                 pstyle = 'albums'
