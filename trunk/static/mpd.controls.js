@@ -194,11 +194,28 @@ mpd.Controls = Ext.extend(Ext.Container, {
                     y: 2,
                     anchor: '100%',
                     id: 'txtCurrentSong',
-                    html: '<div style="font-size:11px">' +
+                    html: '<div style="font-size:11px;cursor:pointer">' +
                         '<b id="txtTitle" style="font-size:14px">Title</b><br>' +
                         ' by <i id="txtArtist">Artist</i>' +
                         ' from <span id="txtAlbum">Album</span>' +
-                        '</div>'
+                        '</div>',
+                    listeners: {
+						'afterrender': function (me) {
+							me.getEl().on('click', function () {
+								var ip = Ext.getCmp('infopanel')
+								if (ip) {
+									var d = {
+										type: 'file',
+										artist: mpd.status.artist,
+										album: mpd.status.album,
+										title: mpd.status.title
+									}
+									ip.loadRecord({data: d})
+									ip.ownerCt.layout.setActiveItem('infopanel')
+								}
+							})
+						}
+					}
                 },
                 pbarTime,                    
                 sliderTime
