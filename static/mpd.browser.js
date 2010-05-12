@@ -938,8 +938,8 @@ mpd.browser.InfoPanel = Ext.extend(Ext.Panel, {
         mpd.browser.InfoPanel.superclass.constructor.apply(this, arguments);
 	},
 	loadRecord: function(rec) {
-		if (!rec || !rec.data) return null
-		var d = rec.data
+		if (!Ext.isObject(rec)) return null
+		var d = rec.data || rec || {}
 		if (d.type != 'file') return null
 		
 		this.update(d)
