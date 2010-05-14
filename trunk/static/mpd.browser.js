@@ -23,6 +23,102 @@ mpd.dbFields = function() {
     return fields.concat(mpd.EXTRA_FIELDS)
 }
 
+
+function editLyricsNative(el) {
+	var ip = Ext.getCmp('infopanel')
+	var d = ip.record.data
+	var lyrics = Ext.fly("lyricsBox").dom.innerHTML
+	lyrics = lyrics.replace(/\<br\>/g, "")
+	var w = new Ext.Window({
+		title: 'Edit Lyrics',
+		resizable: false,
+		items: new Ext.FormPanel({
+			bodyStyle: 'padding:5px;background-color:transparent',
+			standardSubmit: true,
+			labelWidth: 50,
+			defaults: { width: 400 },
+			items: [
+				{
+					xtype: 'hidden',
+					name: 'page_title',
+					value: d.title
+				},
+				{
+					xtype: 'hidden',
+					name: 'page_artist',
+					value: d.artist
+				},
+				{
+					xtype: 'textfield',
+					fieldLabel: 'Title',
+					name: 'title',
+					value: d.title
+				},
+				{
+					xtype: 'textfield',
+					fieldLabel: 'Artist',
+					name: 'artist',
+					value: d.artist
+				},
+				{
+					xtype: 'textarea',
+					fieldLabel: 'Lyrics',
+					name: 'lyrics',
+					value: lyrics,
+					height: 300
+				}
+			],
+			buttons: [
+				{
+					text: 'Save',
+					handler: function(btn) {
+						var frm = btn.ownerCt.ownerCt.getForm()
+						vals = frm.getValues()
+						console.log(vals)
+						Ext.Ajax.request({
+							url: '../lyrics_edit/',
+							method: 'POST',
+							params: vals,
+							callback: function(opts, success, response) {
+								w.close()
+								ip.reload()
+							}
+						})
+					}
+				},
+				{
+					text: 'Cancel',
+					handler: function(btn) {
+						btn.ownerCt.ownerCt.ownerCt.close()
+					}
+				}
+			]
+		})
+	})
+	w.show(el)		
+}
+
+
+function editLyrics(el) {
+	var ip = Ext.getCmp('infopanel')
+	var d = ip.record.data
+	var url = 'http://www.lyricsplugin.com/winamp03/edit?' 
+	url += Ext.urlEncode({
+			'artist': d.artist,
+			'title': d.title
+		})
+	var opts = 'toolbar=no,status=no,menubar=no,width=500,height=550'
+	var w = window.open(url, 'lyric_edit', opts)
+	var checkWin = function() {
+		if (w && !w.closed) {
+			setTimeout(checkWin, 100)
+		} else {
+			ip.loadLyrics.defer(500, ip)
+		}
+	}
+	setTimeout(checkWin, 1000)
+}
+
 function renderIcon(val, meta, rec, row, col, store) {
     return '<div class="icon icon-'+val+'"/>'
 }
@@ -53,6 +149,7 @@ function showImage(el) {
     var win = new Ext.Window({
         autoHeight: true,
         title: t,
+		resizable: false,
         html: '<center style="margin:5px">' +
             '<img src="'+src+'"><br>' +
             lbl +
@@ -60,7 +157,6 @@ function showImage(el) {
         y: 60
     }).show(el)
 }
-
 
 Ext.override(Ext.grid.GridView, {
     holdPosition: false,
@@ -920,49 +1016,61 @@ mpd.browser.InfoPanel = Ext.extend(Ext.Panel, {
 			title: 'Cover &amp; Lyrics',
 			iconCls: 'icon-cover',
 			autoScroll: true,
-			tpl: new Ext.XTemplate('<div style="font-size:11px">',
-				'<center class="x-toolbar">',
-				'<img onclick="showImage(this)" style="max-width:95%;max-height:256px;margin-top:5px" src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}"><br/>',
-				'{album}<tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>',
-				'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/>by </tpl>',
-				'<i>{artist}</i>',
-				'</center><br/>',
-				'<div style="padding:5px">',
-				'Lyrics for <b>"{title}"</b>:<br/><br/>',
-				'<p id="lyricsBox"/>',
-				'</div></div>'
+			record: {data: {}},
+			tpl: new Ext.XTemplate(
+			'<center style="font-size:12px;font-family:helvetica,tahoma,sans-serif">',
+				'<div class="x-toolbar">',
+					'<img onclick="showImage(this)" style="max-width:95%;max-height:256px;margin-top:5px" src="{cover_url}"><br>',
+					'<b>{album}</b><br>',
+					'by <i>{artist}</i>',
+				'</div><br>',
+				'<p id="lyricsTitle" style="font-size:1.5em;font-weight:bold">{title}</p>',
+				'<div style="padding:10px">',
+					'<div id="lyricsBox" Searching for Lyrics...</div><br>',
+					'<a href="#" onclick="editLyrics(this)">Edit Lyrics</a>',
+				'</div>',
+			'</center>'
 			)
 		})
 			
         Ext.apply(this, config)
         mpd.browser.InfoPanel.superclass.constructor.apply(this, arguments);
 	},
-	loadRecord: function(rec) {
-		if (!Ext.isObject(rec)) return null
-		var d = rec.data || rec || {}
-		if (d.type != 'file') return null
-		
-		this.update(d)
+	loadLyrics: function() {
+		if (!Ext.isObject(this.record.data)) return null
+		var d = this.record.data
+		Ext.fly("lyricsTitle").update(d.title)
 		Ext.Ajax.request({
 			url: '../lyrics',
 			params: {
 				'title': d.title,
 				'artist': d.artist
 			},
-			success: function(response, opts) {
-				r = Ext.util.JSON.decode(response.responseText)
-				var lb = Ext.getDom("lyricsBox", this.el.dom)
-				var lnk = '<br><br><a style="font-size:9px" target="_blank" href="' + r.url + '">'+ r.url + '</a>'
-				lb.innerHTML = r.lyrics + lnk
-			},
-			failure: function(response, opts) {
-				var lb = Ext.getDom("lyricsBox", this.el.dom)
-				lb.innerHTML = response.responseText
-			},
-			scope: this
+			callback: function(opts, success, response) {
+				Ext.fly("lyricsBox").update(response.responseText)
+			}
 		})
-		this.doLayout()
-	}		
+		this.doLayout()		
+	},
+	loadRecord: function(rec) {
+		if (!Ext.isObject(rec)) return null
+		if (!Ext.isObject(rec.data)) return null
+		var d = rec.data, old = this.record.data
+		if (d.type != 'file') return null
+		if ((d.artist != old.artist) || (d.album != old.album)) {
+			d.cover_url = '../covers?' + Ext.urlEncode({
+				artist: d.artist,
+				album:d.album
+			})
+			this.update(d)
+			this.doLayout()
+		}
+		this.record = rec
+		this.loadLyrics()
+	},
+	reload: function() {
+		this.loadRecord(this.record)
+	}	
 })
 Ext.reg('info-panel', mpd.browser.InfoPanel)
 
