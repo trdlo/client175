@@ -154,7 +154,7 @@ div.add:hover,
 	width: 16px !important;
 }
 .group-by-letter {
-	background-color: #EFF0FA;
+	border-bottom: 1px dotted;
 }
 .x-tree-node {
 	margin-top: 1px;

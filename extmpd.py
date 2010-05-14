@@ -20,12 +20,12 @@
 #       MA 02110-1301, USA.
 
 
-import cherrypy, json, os
+import cherrypy, json, os, urllib, urllib2
+from BeautifulSoup import BeautifulSoup
 from time import sleep
 from datetime import datetime, timedelta
 import mpd_proxy2 as mpd_proxy
 from mpd import MPDError
-import lyrics as _lyrics
 from covers import CoverSearch
 
 mpd = mpd_proxy.Mpd()
@@ -198,10 +198,20 @@ class Root:
     index.exposed = True
 
 
-    def lyrics(self, title, artist='', **kwargs):
-        response = _lyrics.find(title, artist)
-        d = response.toDict()
-        return json.dumps(d)
+    def lyrics(self, title, artist, **kwargs):
+        # proxy to http://www.lyricsplugin.com to get around
+        # same-origin policy of browsers
+        artist = urllib.quote(artist.strip())
+        title = urllib.quote(title.strip())
+        url = "http://www.lyricsplugin.com/winamp03/plugin/?artist=%s&title=%s"
+        sock = urllib.urlopen( url % (artist,title) )
+        text = sock.read()
+        sock.close()
+        soup = BeautifulSoup(text)
+        div = soup.find("div", id="lyrics")
+        if div:
+            return "".join([str(x) for x in div.contents]).strip() 
+        return "Not Found"
     lyrics.exposed = True
 
 
