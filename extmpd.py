@@ -335,11 +335,13 @@ class Root:
                 result = [x for x in data if x['type'] == itemType]
             elif len(data) > 200:
                 result = []
+                iconCls = 'icon-group-'+itemType
+                cls = 'group-by-letter'
                 letters = sorted(set([x['title'][0].upper() for x in data]))
                 special = {
                     'text': "'(.0-9?",
-                    'iconCls': 'icon-'+itemType,
-                    'cls': 'group-by-letter',
+                    'iconCls': iconCls,
+                    'cls': cls,
                     'children': [x for x in data if x['title'][0] < 'A']
                 }
                 result.append(special)
@@ -347,15 +349,15 @@ class Root:
                     if char >= 'A' and char < 'Z':
                         container = {
                             'text': char,
-                            'iconCls': 'icon-'+itemType,
-                            'cls': 'group-by-letter',
+                            'iconCls': iconCls,
+                            'cls': cls,
                             'children': [x for x in data if x['title'][0].upper() == char]
                         }
                         result.append(container)
                 container = {
                     'text': 'Z+',
-                    'iconCls': 'icon-'+itemType,
-                    'cls': 'group-by-letter',
+                    'iconCls': iconCls,
+                    'cls': cls,
                     'children': [x for x in data if x['title'][0].upper() > 'Y']
                 }
                 result.append(container)
