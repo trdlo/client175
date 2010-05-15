@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
+License:  COPYING.txt
+Website:  http://code.google.com/p/extmpd/
 
 
 
@@ -72,6 +74,8 @@ Beautiful Soup parses a (possibly invalid) XML or HTML document into a
 tree representation. It provides methods and Pythonic idioms that make
 it easy to navigate, search, and modify the tree.
 
+Website:  http://www.crummy.com/software/BeautifulSoup/
+
 
 
 Ext JS - JavaScript Library
@@ -80,11 +84,13 @@ Copyright (c) 2006-2010, Ext JS, Inc.
 All rights reserved.
 licensing@extjs.com
 
-Ext is licensed under the terms of the Open Source GPL 3.0 license.  See
-./static/ext/license.txt or http://extjs.com/license for details.
+Ext is licensed under the terms of the Open Source GPL 3.0 license.
 
 Ext JS is a cross-browser JavaScript library for building rich internet 
-applications.  See http://www.extjs.com/ for more information.
+applications.
+
+License:  static/ext/license.txt
+Website:  http://www.extjs.com/
 
 
 
@@ -116,8 +122,20 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-CherryPy is a pythonic, object-oriented HTTP framework. 
-See http://www.cherrypy.org/ for more information about CherryPy.
+CherryPy is a pythonic, object-oriented HTTP framework.
+
+Website:  http://www.cherrypy.org/
+
+
+
+Fugue Icons
+========================================================================
+Copyright (C) 2010 Yusuke Kamiyamane. All rights reserved.
+The icons are licensed under a Creative Commons Attribution
+3.0 license. <http://creativecommons.org/licenses/by/3.0/>
+
+License:  static/icons/fugue/README.txt
+Website:  http://p.yusukekamiyamane.com/
 
 
 
@@ -127,14 +145,15 @@ Copyright (C) 2008-2009 Adam Olsen
 
 The Metadata module is part of the Exaile project and was modified
 (slightly) to fit the needs of this program.  Exaile is licensed under 
-the GPL version 2 or later license.  See ./Metadata/COPYING.txt for a 
-copy of the license.
+the GPL version 2 or later license.  
 
 Exaile is a music manager and player for GTK+ written in Python. It 
 incorporates automatic fetching of album art, lyrics fetching, Last.fm 
 scrobbling, support for many portable media players, internet radio such 
-as shoutcast, and tabbed playlists.  See http://exaile.org/ 
-for more information about Exaile and it's authors.  
+as shoutcast, and tabbed playlists.  
+
+License:  metadata/COPYING.txt
+Website:  http://exaile.org/   
 
 
 
@@ -156,14 +175,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+License:  COPYING.txt
+
 
 
 Mutagen
 ========================================================================
 Copyright (C) 2005  Michael Urman
 
-Mutagen is licensed under the GPL version 2 or later license.  See 
-./Mutagen/COPYING.txt for a copy of the license.
+Mutagen is licensed under the GPL version 2 or later license.
 
 Mutagen is a Python module to handle audio metadata. It supports ASF, 
 FLAC, M4A, Monkey's Audio, MP3, Musepack, Ogg FLAC, Ogg Speex, Ogg Theora, 
@@ -173,4 +193,5 @@ can read Xing headers to accurately calculate the bitrate and length of
 MP3s. ID3 and APEv2 tags can be edited regardless of audio format. It 
 can also manipulate Ogg streams on an individual packet/page level. 
 
-See http://code.google.com/p/mutagen/ for more information.
+License:  mutagen/COPYING.txt
+Website:  http://code.google.com/p/mutagen/

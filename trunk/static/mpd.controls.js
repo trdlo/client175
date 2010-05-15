@@ -228,9 +228,19 @@ mpd.Controls = Ext.extend(Ext.Container, {
             height: 62,
             cls: 'x-toolbar',
             layout: 'hbox',
+            layoutConfig: {
+				align: 'middle'
+			},
             items: [
                 statusControls,
-                endBox
+                endBox,
+                new Ext.Button({
+					iconCls: 'icon-about',
+					tooltip: 'About ExtMPD',
+					handler: function() {
+						window.open('/about')
+					}
+				})
             ]
         })
 

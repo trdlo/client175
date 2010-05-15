@@ -5,6 +5,11 @@
 	height: 16px;
 	width: 18px
 }
+.icon-about {
+	background: url("icons/fugue/information.png") no-repeat !important;
+	height: 24px !important;
+	width: 24px !important;
+}	
 .icon-add {
 	background: url("icons/fugue/plus.png") no-repeat !important;
 }	

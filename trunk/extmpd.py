@@ -58,6 +58,28 @@ class Root:
     cherrypy.config.update({'error_page.501': _error_page_501})
 
         
+    def about(self, *args):
+        """
+        Convert AUTHORS.txt into a web page with links.
+        """
+        f = open(os.path.join(LOCAL_DIR, "AUTHORS.txt"), "r")
+        txt = []
+        for line in f.readlines():
+            if line.startswith("Website:  http://"):
+                href = line.replace("Website:  ", "")
+                line = "Website:  <a target='_blank' href='%s'>%s</a>" % (href, href)
+            if line.startswith("License:  "):
+                href = line.replace("License:  ", "")
+                if not href.startswith("static/"):
+                    href = "static/" + href
+                line = "License:  <a target='_blank' href='%s'>%s</a>" % (href, href)
+            txt.append(line)
+            
+        f.close()
+        return '<html><body>' + '<br>'.join(txt) + '</body></html>'
+    about.exposed = True
+    
+        
     def add(self, *args):
         if len(args) == 2:
             if args[0] in ('file', 'directory'):
