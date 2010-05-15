@@ -1,6 +1,7 @@
 Ext.namespace('mpd')
 
 mpd.init = function(){
+	Ext.QuickTips.init();
     var vp = new Ext.Viewport({
         layout: 'border',
         items: [

@@ -1,7 +1,149 @@
+/***********************************************************************
+ * Icons
+ **********************************************************************/
+.icon {
+	height: 16px;
+	width: 18px
+}
+.icon-add {
+	background: url("icons/fugue/plus.png") no-repeat !important;
+}	
+div.add {
+	background: url("icons/fugue/plus.png") no-repeat center;
+	filter:alpha(opacity=10);
+	-moz-opacity: 0.1;
+	opacity: 0.1;
+	-khtml-opacity: 0.1;
+}
+div.add:hover,
+.simulated_hover div.add{
+	filter:alpha(opacity=100) !important;
+	-moz-opacity: 1.0 !important;
+	opacity: 1.0 !important;
+	-khtml-opacity: 1.0 !important;
+}
+.icon-album {
+	background: url("icons/fugue/disc.png") no-repeat !important;
+}
+.icon-groups-album {
+	background: url("icons/fugue/discs.png") no-repeat !important;
+}
+.icon-artist, .icon-albumartist {
+	background: url("icons/fugue/microphone.png") no-repeat !important;
+}
+.icon-cancel {
+	background: url("icons/fugue/cross-script.png") no-repeat !important;
+}
+.icon-clear {
+	background: url("icons/fugue/document-new.png") no-repeat !important;
+}
+.icon-cover {
+	background: url("icons/fugue/blog.png") no-repeat !important;
+}
+.icon-date {
+	background: url("icons/fugue/calendar-day.png") no-repeat !important;
+}
+.icon-directory {
+	background: url("icons/fugue/folder-horizontal.png") no-repeat !important;
+}
+.icon-disc {
+	background: url("icons/fugue/disc-case-label.png") no-repeat !important;
+}
+.x-tree-node-expanded .icon-directory,
+.x-tree-selected .icon-directory {
+	background: url("icons/fugue/folder-horizontal-open.png") no-repeat !important;
+}
+.icon-edit {
+	background: url("icons/fugue/tag--pencil.png") no-repeat !important;
+}
+.icon-file {
+	background: url("icons/fugue/music.png") no-repeat !important;
+}
+.icon-genre {
+	background: url("icons/fugue/tag.png") no-repeat !important;
+}
+.icon-group-artist {
+	background: url("icons/fugue/users.png") no-repeat !important;
+}
+.icon-group-playlist {
+	background: url("icons/fugue/folder-open-document-music.png") no-repeat !important;
+}
+.icon-home {
+	background: url("icons/fugue/home.png") no-repeat !important;
+}
+.icon-next {
+	background: url("images/next.png") no-repeat !important;
+	height: 22px !important;
+	width: 32px !important;
+}
+.icon-pause {
+	background: url("images/pause.png") no-repeat !important;
+	height: 16px !important;
+	width: 16px !important;
+}
+.icon-play {
+	background: url("images/play.png") no-repeat !important;
+	height: 42px !important;
+	width: 39px !important;
+}
+.icon-playlist {
+	background: url("icons/fugue/document-music.png") no-repeat !important;
+}
+.icon-group-playlist {
+	background: url("icons/fugue/folder-open-document-music.png") no-repeat !important;
+}
+.icon-newtab {
+	background: url("icons/fugue/ui-tab--plus.png");
+	padding-left: 16px !important;
+}
+.icon-previous {
+	background: url("images/prev.png") no-repeat !important;
+	height: 22px !important;
+	width: 32px !important;
+}
+div.remove:hover,
+.simulated_hover div.remove {
+	background: url("icons/fugue/cross-script.png") no-repeat left top;
+	text-indent: -100px;
+}
+.icon-repeat {
+	background: url("icons/fugue/arrow-repeat-gray.png") no-repeat !important;
+}
+.x-btn-pressed .icon-repeat {
+	background: url("icons/fugue/arrow-repeat.png") no-repeat !important;
+}
+.icon-random {
+	background: url("icons/fugue/arrow-switch-gray.png") no-repeat 1px 0px !important;
+}
+.x-btn-pressed .icon-random {
+	background: url("icons/fugue/arrow-switch.png") no-repeat 1px 0px !important;
+}
+.icon-save {
+	background: url("icons/fugue/disk.png") no-repeat !important;
+}
+.icon-search {
+	background: url("icons/fugue/magnifier.png") no-repeat !important;
+}
+.icon-stop {
+	background: url("images/stop.png") no-repeat !important;
+	height: 16px !important;
+	width: 16px !important;
+}
+
+/***********************************************************************
+ * Components
+ **********************************************************************/
+
+#mpd-controls {
+	background-image: none !important;
+	background: transparent !important;
+}
+
 .x-accordion-hd {
     font-size: 12px;
     font-weight: bold;
 }
+
 .x-list-body {
 	top:22px;
 	position:absolute;
@@ -30,15 +172,10 @@
 .list-dropover {
 	border-top: 16px solid #C7D3DA !important;
 }
-
 div.album-group-start {
 	white-space: normal !important;
 }
 
-#mpd-controls {
-	background-image: none !important;
-	background: transparent !important;
-}
 div.x-grid3-col-cicon {padding: 0px; margin: 2px 3px 0px 0px;}
 .x-grid3-col-csong {font-weight: 800}
 .x-grid3-col-calbum {font-weight: normal !important}
@@ -53,113 +190,20 @@ div.x-grid3-col-cicon {padding: 0px; margin: 2px 3px 0px 0px;}
 	margin: 0px;
 	padding: 0px;
 }
-div.remove:hover,
-.simulated_hover div.remove {
-	background: url("images/remove.png") no-repeat left top;
-	text-indent: -100px;
-}
-div.add {
-	background: url("images/add_small_inactive.png") no-repeat center;
-}
-div.add:hover,
-.simulated_hover div.add{
-	background: url("images/add_small.png") no-repeat center;
-}
-.icon {
-	height: 16px;
-	width: 18px
-}
-.icon-add {
-	background: url("images/add_small.png") no-repeat !important;
-	padding-left: 14px !important;
-}
-.icon-album {
-	background: url("images/album.png") no-repeat !important;
-}
-.icon-artist, .icon-albumartist {
-	background: url("images/artist.png") no-repeat !important;
-	min-width: 18px;
-	margin-right: 4px;
-}
-.icon-cancel {
-	background: url("images/cancel.png") no-repeat !important;
-}
-.icon-cover {
-	background: url("images/picture.png") no-repeat !important;
-}
-.icon-directory {
-	background: url("images/directory.png") no-repeat !important;
-}
-.icon-edit {
-	background: url("images/application_edit.png") no-repeat !important;
-}
-.icon-file {
-	background: url("images/file.png") no-repeat !important;
-}
-.icon-genre {
-	background: url("images/genre.png") no-repeat !important;
-}
-.icon-date {
-	background: url("images/date.png") no-repeat !important;
-}
-.icon-next {
-	background: url("images/next.png") no-repeat !important;
-	height: 22px !important;
-	width: 32px !important;
-}
-.icon-repeat {
-	background: url("images/repeat.png") no-repeat !important;
-	padding-left: 20px !important;
-}
-.icon-save {
-	background: url("images/disk.png") no-repeat !important;
-}
-.x-btn-pressed .icon-repeat {
-	background-image: url("images/repeat-on.png") !important;
-}
-.icon-random {
-	background: url("images/random.png") no-repeat 1px 0px !important;
-	padding-left: 20px !important;
-}
-.x-btn-pressed .icon-random {
-	background-image: url("images/random-on.png") !important;
-}
-.icon-search {
-	background: url("images/search.png") no-repeat !important;
-}
-.icon-pause {
-	background: url("images/pause.png") no-repeat !important;
-	height: 16px !important;
-	width: 16px !important;
-}
-.icon-play {
-	background: url("images/play.png") no-repeat !important;
-	height: 42px !important;
-	width: 39px !important;
-}
-.icon-playlist {
-	background: url("images/playlist.png") no-repeat !important;
-}
-.icon-playlists {
-	background: url("images/playlists.png") no-repeat !important;
-}
-.icon-previous {
-	background: url("images/prev.png") no-repeat !important;
-	height: 22px !important;
-	width: 32px !important;
-}
-.icon-stop {
-	background: url("images/stop.png") no-repeat !important;
-	height: 16px !important;
-	width: 16px !important;
-}
+
+
 .group-by-letter {
 	border-bottom: 1px dotted;
+	font-weight: bold;
 }
 .x-tree-node {
 	margin-top: 1px;
 	margin-bottom: 0px;
 }
+a.x-tree-node-anchor {
+	padding-left: 2px;
+}
+
 .x-tab-strip-text {
 	background-repeat: no-repeat;
 	background-position: 0 6px !important;
@@ -169,44 +213,8 @@ div.add:hover,
 #dbtabbrowser__new_tab .x-tab-right {
 	width: 25px !important;
 }
-.icon-newtab {
-	background: url("images/newtab.png");
-	padding-left: 16px !important;
-}
 .x-tab-strip-text {
 	background-position: 0 3px !important;
 	margin-top: 2px !important;
 	height: 16px;
-}
-.x-tab-strip-over .icon-newtab {
-	background-image: url("images/newtab-over.png") !important;
-}
-.compact_list div.thumb {
-	max-width: 200px;
-}
-.compact_list {
-	position: relative;
-	font-size:10px;
-   -moz-user-select: none;
-   -khtml-user-select: none;
-   user-select: none;
-}
-.compact_list .thumb-wrap{
-	border:1px solid transparent;
-}
-.compact_list .thumb{
-	margin-right: 4px;
-	cursor: default;
-}
-.compact_list .x-view-over{
-	border:1px solid #dddddd;
-	background-color: #efefef;
-}
-
-.compact_list .x-view-selected{
-	background-color: #eff5fb;
-	border:1px solid #99bbe8;
-}
-.compact_list .x-view-selected .thumb{
-	background:transparent;
 }

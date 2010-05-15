@@ -3,6 +3,7 @@ mpd.PAGE_LIMIT = 200
 mpd.TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
 mpd.EXTRA_FIELDS = []
 
+
 mpd.dbFields = function() {
     var fields = [
         {'name': 'id'},
@@ -24,89 +25,13 @@ mpd.dbFields = function() {
 }
 
 
-function editLyricsNative(el) {
-	var ip = Ext.getCmp('infopanel')
-	var d = ip.record.data
-	var lyrics = Ext.fly("lyricsBox").dom.innerHTML
-	lyrics = lyrics.replace(/\<br\>/g, "")
-	var w = new Ext.Window({
-		title: 'Edit Lyrics',
-		resizable: false,
-		items: new Ext.FormPanel({
-			bodyStyle: 'padding:5px;background-color:transparent',
-			standardSubmit: true,
-			labelWidth: 50,
-			defaults: { width: 400 },
-			items: [
-				{
-					xtype: 'hidden',
-					name: 'page_title',
-					value: d.title
-				},
-				{
-					xtype: 'hidden',
-					name: 'page_artist',
-					value: d.artist
-				},
-				{
-					xtype: 'textfield',
-					fieldLabel: 'Title',
-					name: 'title',
-					value: d.title
-				},
-				{
-					xtype: 'textfield',
-					fieldLabel: 'Artist',
-					name: 'artist',
-					value: d.artist
-				},
-				{
-					xtype: 'textarea',
-					fieldLabel: 'Lyrics',
-					name: 'lyrics',
-					value: lyrics,
-					height: 300
-				}
-			],
-			buttons: [
-				{
-					text: 'Save',
-					handler: function(btn) {
-						var frm = btn.ownerCt.ownerCt.getForm()
-						vals = frm.getValues()
-						console.log(vals)
-						Ext.Ajax.request({
-							url: '../lyrics_edit/',
-							method: 'POST',
-							params: vals,
-							callback: function(opts, success, response) {
-								w.close()
-								ip.reload()
-							}
-						})
-					}
-				},
-				{
-					text: 'Cancel',
-					handler: function(btn) {
-						btn.ownerCt.ownerCt.ownerCt.close()
-					}
-				}
-			]
-		})
-	})
-	w.show(el)		
-}
-
-
 function editLyrics(el) {
 	var ip = Ext.getCmp('infopanel')
 	var d = ip.record.data
-	var url = 'http://www.lyricsplugin.com/winamp03/edit?' 
-	url += Ext.urlEncode({
-			'artist': d.artist,
-			'title': d.title
-		})
+	var url = 'http://www.lyricsplugin.com/winamp03/edit?' + Ext.urlEncode({
+		'artist': d.artist,
+		'title': d.title
+	})
 	var opts = 'toolbar=no,status=no,menubar=no,width=500,height=550'
 	var w = window.open(url, 'lyric_edit', opts)
 	var checkWin = function() {
@@ -119,9 +44,11 @@ function editLyrics(el) {
 	setTimeout(checkWin, 1000)
 }
 
+
 function renderIcon(val, meta, rec, row, col, store) {
     return '<div class="icon icon-'+val+'"/>'
 }
+
 
 function showImage(el) {
     // el should be an image DOM element to show larger...
@@ -537,17 +464,17 @@ mpd.browser.PlaylistToolbar = Ext.extend(Ext.Toolbar, {
                             })
                         }
                     }
-                }, "->",
+                },
                 {
                     iconCls: "icon-save",
-                    qtip: 'Save Playlist',
+                    tooltip: 'Save Playlist',
                     handler: function () {
                         mpd.cmd(['save', Ext.getCmp('txtplaylist').getValue()])
                     }
-                },
+                }, "->",
                 {
-                    iconCls: "icon-cancel",
-                    qtip: 'Clear Playlist',
+                    iconCls: "icon-clear",
+                    tooltip: 'Clear Playlist',
                     handler: function () {
                         mpd.cmd(['clear'])
                     }
@@ -696,7 +623,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                     var v = self.getView()
                     var cm = self.getColumnModel()
                     var colIdx = v.findCellIndex(e.getTarget())
-                    if (colIdx) {
+                    if (colIdx !== false) {
 						var col = cm.getColumnId(colIdx)
 						if (col == 'cpos') self.onHover()
 					}
@@ -705,7 +632,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                     var v = self.getView()
                     var cm = self.getColumnModel()
                     var colIdx = v.findCellIndex(e.getTarget())
-                    if (colIdx) {
+                    if (colIdx !== false) {
 						var col = cm.getColumnId(colIdx)
 						if (col == 'cpos') {
 							self.onHoverOut()
@@ -724,11 +651,12 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         var sm = self.getSelectionModel()
         this.selected = []
         this.onHover = function(evt, el) {
-            Ext.select(".x-grid3-row-selected", this.el).addClass('simulated_hover')
+            var sel = Ext.select(".x-grid3-row-selected", self.el)
+            sel.addClass('simulated_hover')
             self.selected = sm.getSelections()
         }
         this.onHoverOut = function(evt, el) {
-            Ext.select(".x-grid3-body .simulated_hover", this.el).removeClass('simulated_hover')
+            Ext.select(".x-grid3-body .simulated_hover", self.el).removeClass('simulated_hover')
             self.selected = []
         }   
         
@@ -762,7 +690,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
 
         var self = this
         this.getTopToolbar().add({
-            text: "Home",
+            iconCls: 'icon-home',
             handler: function(){ self.goTo('/')}
         })
     },
@@ -804,14 +732,27 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
 			default:
 				store.baseParams = {cmd: 'find ' + itemType +' "' + dir + '"'};
 		}
-
+		
+		// Remove any sort
+		var sortField = (store.sortInfo) ? store.sortInfo.field : null
+		if (sortField) {
+			var vw = g.getView()
+			vw.mainHd.select('td').removeClass(['sort-asc', 'sort-desc'])
+			store.sortInfo = {'field': '', 'dir': ''}
+		}
+		
         var tb = g.getTopToolbar()
         var p = g.findParentByType('panel')
         var t = '/'
         if (dir != this.cwd || isSearch) {
             if (!isSearch) this.cwd = dir
-            store.load({params:{start:0, limit:mpd.PAGE_LIMIT}})
-
+            store.load({
+				params: {
+					'start': 0, 
+					'limit': mpd.PAGE_LIMIT
+				}
+			})
+			
             // Remove any existing Path buttons
             btn = tb.getComponent(1)
             while (btn) {
@@ -822,7 +763,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
             // Ensure the Home button is there
             btn = tb.getComponent(0)
             if (!btn) tb.addButton({
-                text: 'Home',
+                iconCls: 'icon-home',
                 dir: '/',
                 handler: function(){g.goTo(this.dir)}
             })
@@ -868,7 +809,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
                         handler: function(){mpd.cmd( ['add', itemType, encId(dir)])}
                     })
                     p.setTitle(t)
-                    p.setIconClass('icon-directory')
+                    p.setIconClass('icon-'+itemType)
                 }
             }
             tb.doLayout()
@@ -1250,19 +1191,19 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                 children: [{
                     nodeType: 'async',
                     id: 'playlist:',
-                    text: 'Playlists',
-                    iconCls: 'icon-playlist',
+                    text: '<b>Playlists</b>',
+                    iconCls: 'icon-group-playlist',
                     cmd: 'lsinfo'
                 }, {
                     nodeType: 'async',
                     id: 'artist:',
-                    text: 'Artist/Albums',
-                    iconCls: 'icon-artist',
+                    text: '<b>Artist/Albums</b>',
+                    iconCls: 'icon-group-artist',
                     cmd: 'list artist'
                 }, {
                     nodeType: 'async',
                     id: 'directory:',
-                    text: 'Folders',
+                    text: '<b>Folders</b>',
                     iconCls: 'icon-directory',
                     cmd: 'lsinfo'
                 }] 
