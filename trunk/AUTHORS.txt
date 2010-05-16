@@ -78,22 +78,6 @@ Website:  http://www.crummy.com/software/BeautifulSoup/
 
 
 
-Ext JS - JavaScript Library
-========================================================================
-Copyright (c) 2006-2010, Ext JS, Inc.
-All rights reserved.
-licensing@extjs.com
-
-Ext is licensed under the terms of the Open Source GPL 3.0 license.
-
-Ext JS is a cross-browser JavaScript library for building rich internet 
-applications.
-
-License:  static/ext/license.txt
-Website:  http://www.extjs.com/
-
-
-
 CherryPy
 ========================================================================
 Copyright (c) 2004-2009, CherryPy Team (team@cherrypy.org)
@@ -125,6 +109,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 CherryPy is a pythonic, object-oriented HTTP framework.
 
 Website:  http://www.cherrypy.org/
+
+
+
+Ext JS - JavaScript Library
+========================================================================
+Copyright (c) 2006-2010, Ext JS, Inc.
+All rights reserved.
+licensing@extjs.com
+
+Ext is licensed under the terms of the Open Source GPL 3.0 license.
+
+Ext JS is a cross-browser JavaScript library for building rich internet 
+applications.
+
+License:  static/ext/license.txt
+Website:  http://www.extjs.com/
 
 
 
