@@ -561,6 +561,17 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             autoExpandMax: 300,
             closable: true,
             hideParent: true,
+            keys: {
+				key: 'a',
+				ctrl: true,
+				fn: function (k, e) {
+					var sm = this.getSelectionModel()
+					sm.selectAll()
+					e.stopEvent()
+					return false
+				},
+				scope: this
+			},
             //enableDragDrop: true,
             tbar: new Ext.Toolbar(),
             bbar: new Ext.PagingToolbar({
@@ -1198,7 +1209,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     nodeType: 'async',
                     id: 'artist:',
                     text: '<b>Artist/Albums</b>',
-                    iconCls: 'icon-group-artist',
+                    iconCls: 'icon-group-album',
                     cmd: 'list artist'
                 }, {
                     nodeType: 'async',
