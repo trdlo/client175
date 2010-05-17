@@ -43,12 +43,6 @@ appEvents = {
 }
 
 
-function encId (id) {
-    if (id != "/" && id.substr(0,1) == "/") id = id.slice(1)
-    return encodeURIComponent(id)
-}
-
-
 function hmsFromSec(sec) {
     var hms = "0:00"
     try {
@@ -118,10 +112,15 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 })
 
 
+ 
 mpd.cmd = function (aCmd, callBack) {
     mpd.timer_delay = 100
+    var url = ".."
+    Ext.each(aCmd, function(item) {
+		url += "/" + encodeURIComponent(item)
+	})
     Ext.Ajax.request({
-        url: '../' + aCmd.join("/"),
+        url: url,
         success: function(response, opts) {
 			if (Ext.isFunction(callBack)) {
 				d = Ext.util.JSON.decode(response.responseText)

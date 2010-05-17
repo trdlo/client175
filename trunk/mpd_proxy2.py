@@ -126,6 +126,8 @@ class _Mpd_Instance:
     def __getattr__(self, name):
         if name == 'list':
             fn = self.list
+        elif name == 'listplaylists':
+            fn = self.listplaylists
         else:
             fn = self.con.__getattr__(name)
 
@@ -279,18 +281,18 @@ class _Mpd_Instance:
 
 
     def execute_sorted(self, command, sortKey, sortReverse=False):
-        if type(command) in (str, unicode):
-            key = command
-        else:
-            key = ' '.join(command)
-        key += '_%s_%s' % (sortKey, sortReverse)
+        if type(command) not in (str, unicode):
+            command = ' '.join(command)
+        key = command + '_%s_%s' % (sortKey, sortReverse)
+        
         cached = self._dbcache.get(key)
         if cached is not None:
             return cached
 
         result = self.execute(command)
         sorted_result = sorted(result, fieldSorter(sortKey), reverse=sortReverse)
-        self._dbcache[key] = sorted_result
+        if command in self._cache_cmds:
+            self._dbcache[key] = sorted_result
         return sorted_result
 
 
@@ -312,7 +314,6 @@ class _Mpd_Instance:
             return True
 
 
-
     def list(self, *args):
         what = args[0]
         data = self._safe_cmd(self.con.list, args)
@@ -322,6 +323,19 @@ class _Mpd_Instance:
                 'title': item,
                 'type': what,
                 what: item,
+                'any': item
+            }
+        return data
+
+
+    def listplaylists(self, *args):
+        data = self._safe_cmd(self.con.listplaylists, args)
+        for index in range(len(data)):
+            item = data[index]['playlist']
+            data[index] = {
+                'title': item,
+                'type': 'playlist',
+                'playlist': item,
                 'any': item
             }
         return data

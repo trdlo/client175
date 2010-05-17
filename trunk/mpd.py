@@ -80,6 +80,7 @@ class MPDClient(object):
             "delete":           self._getnone,
             "deleteid":         self._getnone,
             "findadd":          self._getnone,
+            "listplaylists":    self._getplaylists,
             "load":             self._getnone,
             "rename":           self._getnone,
             "move":             self._getnone,
@@ -261,7 +262,10 @@ class MPDClient(object):
         return self._getobjects(["file"])
 
     def _getdatabase(self):
-        return self._getobjects(["file", "directory", "playlist"])
+        return self._getobjects(["file", "directory"])
+
+    def _getplaylists(self):
+        return self._getobjects(["playlist"])
 
     def _getoutputs(self):
         return self._getobjects(["outputid"])

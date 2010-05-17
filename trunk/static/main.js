@@ -49,8 +49,14 @@ mpd.init = function(){
                     xtype: 'browser-tab-panel'
                 }
             }
-        ]
+        ],
+        listeners: {
+			render: function (self) {
+				self.el.on('contextmenu', function (event) {event.stopEvent()})
+			}
+		}
     })
+    
     mpd.checkStatus.delay(100)
 }
 

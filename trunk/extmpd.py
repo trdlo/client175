@@ -83,7 +83,10 @@ class Root:
     def add(self, *args):
         if len(args) == 2:
             if args[0] in ('file', 'directory'):
-                mpd.add(args[1])
+                d = args[1]
+                if d.startswith("/"):
+                    d = d[1:]
+                mpd.add(d)
             elif args[0] == 'playlist':
                 mpd.load(args[1])
             elif args[0] == 'search':
@@ -96,7 +99,10 @@ class Root:
             else:
                 mpd.findadd(args[0], args[1])
         else:
-            mpd.add(args[0])
+            d = args[0]
+            if d.startswith("/"):
+                d = d[1:]
+            mpd.add(d)
     add.exposed = True
 
 
@@ -353,7 +359,7 @@ class Root:
             itemType = node.split(":")[0]
             data = [x for x in mpd.execute_sorted(cmd, itemType) if x.get('title')]
             
-            if itemType in ['directory', 'playlist']:
+            if itemType in 'directory':
                 result = [x for x in data if x['type'] == itemType]
             elif len(data) > 200:
                 result = []
