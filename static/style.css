@@ -21,6 +21,9 @@ div.add {
 	-khtml-opacity: 0.15;
 }
 div.add:hover,
+.icon-add {
+	background: url("icons/fugue/plus.png") no-repeat !important;
+}	
 .simulated_hover div.add{
 	filter:alpha(opacity=100) !important;
 	-moz-opacity: 1.0 !important;
@@ -59,6 +62,9 @@ div.add:hover,
 	background: url("icons/fugue/folder-horizontal-open.png") no-repeat !important;
 }
 .icon-edit {
+	background: url("icons/fugue/pencil.png") no-repeat !important;
+}
+.icon-edit-tags {
 	background: url("icons/fugue/tag--pencil.png") no-repeat !important;
 }
 .icon-file {
@@ -109,6 +115,15 @@ div.add:hover,
 	height: 22px !important;
 	width: 32px !important;
 }
+.icon-random {
+	background: url("icons/fugue/arrow-switch-gray.png") no-repeat 1px 0px !important;
+}
+.x-btn-pressed .icon-random {
+	background: url("icons/fugue/arrow-switch.png") no-repeat 1px 0px !important;
+}
+.icon-refresh {
+	background: url("icons/fugue/arrow-circle-315.png") no-repeat !important;
+}
 div.remove:hover,
 .simulated_hover div.remove {
 	background: url("icons/fugue/cross-script.png") no-repeat left top;
@@ -120,12 +135,9 @@ div.remove:hover,
 .x-btn-pressed .icon-repeat {
 	background: url("icons/fugue/arrow-repeat.png") no-repeat !important;
 }
-.icon-random {
-	background: url("icons/fugue/arrow-switch-gray.png") no-repeat 1px 0px !important;
-}
-.x-btn-pressed .icon-random {
-	background: url("icons/fugue/arrow-switch.png") no-repeat 1px 0px !important;
-}
+.icon-replace {
+	background: url("icons/fugue/plus-octagon.png") no-repeat !important;
+}	
 .icon-save {
 	background: url("icons/fugue/disk.png") no-repeat !important;
 }

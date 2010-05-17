@@ -189,14 +189,25 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                     }
                 }
             ],
-            tbar: new mpd.browser.PlaylistToolbar(),
-            bbar: [
-                'Filter: ', ' ',
-                new Ext.app.FilterField({
-                    store: self.store,
-                    width:160
-                })
-            ],
+            tbar: mpd.browser.createPlaylistToolbar(),
+            bbar: new Ext.Toolbar({
+				layout: 'hbox',
+				layoutConfig: {
+					align: 'middle'
+				},
+				items: [
+					{
+						xtype: 'label',
+						text: 'Filter:',
+						margins: '0 4 0 2'
+					},
+					new Ext.app.FilterField({
+						store: self.store,
+						margins: '0 2 0 2',
+						flex: 1
+					})
+				]
+			}),
             listeners: {
                 'beforecollapse': function () {
                     Ext.getCmp('dbtabbrowser').unhideTabStripItem('playlistTab')
@@ -447,43 +458,74 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
 Ext.reg('playlist_sidebar', mpd.browser.Playlist)
 
 
-mpd.browser.PlaylistToolbar = Ext.extend(Ext.Toolbar, {
-    constructor: function(config) {
-        Ext.apply(this, {
-            items: [
-                {
-                    xtype: 'textfield',
-                    id: 'txtplaylist',
-                    flex: 1,
-                    listeners: {
-                        afterrender: function (self) {
-                            var n = Ext.value(mpd.status.playlistname, 'Untitled')
-                            self.setValue(n)
-                            appEvents.subscribe('playlistnamechanged', function(){
-                                self.setValue(mpd.status.playlistname)
-                            })
-                        }
-                    }
-                },
-                {
-                    iconCls: "icon-save",
-                    tooltip: 'Save Playlist',
-                    handler: function () {
-                        mpd.cmd(['save', Ext.getCmp('txtplaylist').getValue()])
-                    }
-                }, "->",
-                {
-                    iconCls: "icon-clear",
-                    tooltip: 'Clear Playlist',
-                    handler: function () {
-                        mpd.cmd(['clear'])
-                    }
-                }
-            ]
-        })
-        mpd.browser.PlaylistToolbar.superclass.constructor.apply(this, arguments);
-    }
-})
+mpd.browser.createPlaylistToolbar = function () {
+    return new Ext.Toolbar({
+		layout: 'hbox',
+		layoutConfig: {
+			align: 'middle'
+		},
+		items: [
+			{
+				xtype: 'combo',
+				store: new Ext.data.JsonStore({
+					autoLoad: true,
+					url: '../listplaylists',
+					fields: ['last-modified', 'playlist']
+				}),
+				mode: 'local',
+				forceAll: true,
+				valueField: 'playlist',
+				displayField: 'playlist',
+				id: 'txtplaylist',
+				flex: 1,
+				margins: '0 4 0 0',
+				listeners: {
+					afterrender: function (self) {
+						var n = Ext.value(mpd.status.playlistname, 'Untitled')
+						self.setValue(n)
+						appEvents.subscribe('playlistnamechanged', function(){
+							self.setValue(mpd.status.playlistname)
+						})
+						self.store.load()
+					},
+					select: function (combo, rec, idx) {
+						mpd.cmd(['clear'])
+						mpd.cmd(['load', rec.data.playlist])
+					}
+				},
+				onTriggerClick : function(){
+					if(this.isExpanded()){
+						this.collapse();
+						this.el.focus();
+					}else {
+						this.onFocus({});
+						this.store.load()
+						this.doQuery('', true)
+						this.el.focus();
+					}
+				}
+			},
+			{
+				xtype: 'button',
+				iconCls: "icon-save",
+				tooltip: 'Save Playlist',
+				handler: function () {
+					var combo = Ext.getCmp('txtplaylist')
+					var callBack = combo.store.load.createDelegate(combo.store)
+					mpd.cmd(['save', combo.getValue()], callBack)
+				}
+			},
+			{
+				xtype: 'button',
+				iconCls: "icon-clear",
+				tooltip: 'Clear Playlist',
+				handler: function () {
+					mpd.cmd(['clear'])
+				}
+			}
+		]
+	})
+}
 
 
 mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
@@ -614,13 +656,13 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                                 } else {
                                     switch (row.type) {
                                         case 'file': 
-                                            mpd.cmd( ['add', encId(row.file)] )
+                                            mpd.cmd( ['add', row.file] )
                                             break;
                                         case 'directory': 
-                                            mpd.cmd( ['add', encId(row.directory)] )
+                                            mpd.cmd( ['add', row.directory] )
                                             break;
                                         default:
-                                            mpd.cmd( ['add', row.type, encId(row.title)] )
+                                            mpd.cmd( ['add', row.type, row.title] )
                                     }                                        
                                 }
                                 rec.set('pos', "..")
@@ -650,6 +692,17 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 						}
 					}
                 },
+                "rowcontextmenu": function (grid, rowIdx, event) {
+					event.stopEvent()
+					var sm = grid.getSelectionModel()
+					if (!sm.isSelected(rowIdx)) sm.selectRow(rowIdx, true)
+					var recs = sm.getSelections()
+					var d = []
+					Ext.each(recs, function(item) {
+						d.push(item.data)
+					})
+					mpd.context.Show(d, event)
+				},
                 'rowdblclick': function(g, rowIdx, e) {
                     var row = self.getStore().getAt(rowIdx).data
                     self.goTo(row)
@@ -736,7 +789,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
 				if (obj.pos) {
 					mpd.cmd( ['playid', obj.id] )
 				} else {
-					mpd.cmd( ['add', encId(obj.file)] )
+					mpd.cmd( ['add', obj.file] )
 				}
 				return null;
 				break;
@@ -817,7 +870,7 @@ mpd.browser.DbBrowser = Ext.extend(mpd.browser.GridBase, {
                     tb.addButton({
                         text: 'Add All',
                         iconCls: 'icon-add',
-                        handler: function(){mpd.cmd( ['add', itemType, encId(dir)])}
+                        handler: function(){mpd.cmd( ['add', itemType, dir])}
                     })
                     p.setTitle(t)
                     p.setIconClass('icon-'+itemType)
@@ -854,7 +907,7 @@ mpd.browser.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 			id: 'tageditor',
 			title: 'Edit Tags',
 			bbar: ["->", this.btnReset, "-", this.btnSave],
-			iconCls: "icon-edit",
+			iconCls: "icon-edit-tags",
 			listeners: {
 				'beforepropertychange': function(src, key, val, old) {
 					if (key.charAt(0) == "(") return false
@@ -1122,7 +1175,7 @@ Ext.reg('browser-tab-panel', mpd.browser.TabPanel)
 
 mpd.browser.TabPlaylist = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
-        config.tbar = new mpd.browser.PlaylistToolbar()
+        config.tbar = mpd.browser.createPlaylistToolbar()
         config.cmd = 'playlistinfo'
         Ext.apply(this, config)
         mpd.browser.TabPlaylist.superclass.constructor.apply(this, arguments);        
@@ -1204,7 +1257,12 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     id: 'playlist:',
                     text: '<b>Playlists</b>',
                     iconCls: 'icon-group-playlist',
-                    cmd: 'lsinfo'
+                    cmd: 'listplaylists',
+                    listeners: {
+						beforeexpand: function (self) {
+							self.loaded = false
+						}
+					}
                 }, {
                     nodeType: 'async',
                     id: 'artist:',
@@ -1216,6 +1274,8 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     id: 'directory:',
                     text: '<b>Folders</b>',
                     iconCls: 'icon-directory',
+                    type: 'directory',
+                    directory: '/',
                     cmd: 'lsinfo'
                 }] 
             }),
@@ -1231,7 +1291,22 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                             if (node.isLoaded()) node.reload()
                         })
                     })
-                }
+                },
+                'contextmenu': function(node, event) {
+					var a = node.attributes
+					if(!a.type) return false
+					if (a.type == 'playlist') {
+						mpd.context.Show([a], event, function (item, event) {
+							var id = item.id
+							if (id == 'mpd-context-add') return null
+							if (id == 'mpd-context-replace') return null
+							var p = node.parentNode
+							p.reload.defer(100, p)
+						})
+					} else {
+						mpd.context.Show([a], event)
+					}
+				}
             }
         })
         Ext.apply(this, config)

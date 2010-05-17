@@ -32,7 +32,6 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
     hideTrigger1:true,
     filter: false,
     filterField: 'any',
-    width:180,
     hasSearch : false,
     paramName : 'query',
 
@@ -82,7 +81,6 @@ Ext.app.FilterField = Ext.extend(Ext.form.TwinTriggerField, {
     trigger2Class:'x-form-search-trigger',
     hideTrigger1:true,
     filterField: 'any',
-    width:180,
     hasSearch : false,
 
     onTrigger1Click : function(){
