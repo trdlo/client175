@@ -458,6 +458,114 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
 Ext.reg('playlist_sidebar', mpd.browser.Playlist)
 
 
+mpd.browser.playlistChooser = new Ext.Window({
+	title: 'Choose Playlist to Load...',
+	layout: 'vbox',
+	width: 300,
+	height: 200,
+	padding: 5,
+	mode: 'open',
+	layoutConfig: {align: 'stretch'},
+	closeAction: 'hide',
+	items: [
+		{
+			xtype: 'panel',
+			layout: 'fit',
+			flex: 1,
+			items: {
+				xtype: 'listview',
+				id: 'playlists-load-list',
+				singleSelect: true,
+				autoScroll: true,
+				store: new Ext.data.JsonStore({
+					autoLoad: false,
+					url: '../listplaylists',
+					fields: ['playlist', 'type', 'title', 'any']
+				}),
+				columns: [{header: 'Playlist Name', dataIndex: 'title'}],
+				listeners: {
+					'selectionchange': function(lst, nodes) {
+						if (nodes.length > 0) {
+							var t = Ext.getCmp('txtplaylist-load')
+							var r = lst.getRecord(nodes[0])
+							t.setValue(r.data.title)
+						}
+					}
+				}							
+			}
+		},
+		{
+			xtype: 'textfield',
+			id: 'txtplaylist-load',
+			text: 'Untitled'
+		}
+	],
+	listeners: {
+		'beforeshow': function(self) {
+			var lst = Ext.getCmp('playlists-load-list')
+			var t = Ext.getCmp('txtplaylist-load')
+			var o = Ext.getCmp('playlists-load-open')
+			var s = Ext.getCmp('playlists-load-save')
+			var n = Ext.value(mpd.status.playlistname, 'Untitled')
+			lst.getStore().load()
+			t.setValue(n)
+			if (self.mode == 'open') {
+				s.hide()
+				o.show()
+				t.disable()
+				self.setTitle('Choose Playlist to Load...')
+			} else {
+				o.hide()
+				s.show()
+				t.enable()
+				self.setTitle('Save: Enter Playlist Name')
+			}
+		}
+	},			
+	bbar: [
+		'->',
+		{
+			xtype: 'button',
+			text: 'Cancel',
+			iconCls: "icon-cancel",
+			handler: function(btn) {
+				btn.ownerCt.ownerCt.hide()
+			}
+		},
+		{
+			xtype: 'button',
+			text: 'Open',
+			id: 'playlists-load-open',
+			iconCls: "icon-directory-open",
+			handler: function(btn) {
+				var t = Ext.getCmp('txtplaylist-load')
+				mpd.cmd(['load', t.getValue(), true])
+				btn.ownerCt.ownerCt.hide()
+			}
+		},
+		{
+			xtype: 'button',
+			text: 'Save',
+			id: 'playlists-load-save',
+			iconCls: "icon-save",
+			handler: function(btn) {
+				var t = Ext.getCmp('txtplaylist-load')
+				mpd.cmd(['save', t.getValue()])
+				btn.ownerCt.ownerCt.hide()
+			}
+		}
+	],
+	showOpen: function(el) {
+		this.mode = 'open'
+		this.show(el)
+	},
+	showSave: function(el) {
+		this.mode = 'save'
+		this.show(el)
+	}
+})
+
+
 mpd.browser.createPlaylistToolbar = function () {
     return new Ext.Toolbar({
 		layout: 'hbox',
@@ -466,43 +574,28 @@ mpd.browser.createPlaylistToolbar = function () {
 		},
 		items: [
 			{
-				xtype: 'combo',
-				store: new Ext.data.JsonStore({
-					autoLoad: true,
-					url: '../listplaylists',
-					fields: ['last-modified', 'playlist']
-				}),
-				mode: 'local',
-				forceAll: true,
-				valueField: 'playlist',
-				displayField: 'playlist',
-				id: 'txtplaylist',
+				xtype: 'label',
 				flex: 1,
-				margins: '0 4 0 0',
+				margins: '0 4 0 6',
+				style: 'font-weight:bold;',
 				listeners: {
 					afterrender: function (self) {
 						var n = Ext.value(mpd.status.playlistname, 'Untitled')
-						self.setValue(n)
+						self.setText(n)
 						appEvents.subscribe('playlistnamechanged', function(){
-							self.setValue(mpd.status.playlistname)
+							console.log(mpd.status.playlistname)
+							console.log(self)
+							self.setText(mpd.status.playlistname)
 						})
-						self.store.load()
-					},
-					select: function (combo, rec, idx) {
-						mpd.cmd(['clear'])
-						mpd.cmd(['load', rec.data.playlist])
 					}
-				},
-				onTriggerClick : function(){
-					if(this.isExpanded()){
-						this.collapse();
-						this.el.focus();
-					}else {
-						this.onFocus({});
-						this.store.load()
-						this.doQuery('', true)
-						this.el.focus();
-					}
+				}
+			},
+			{
+				xtype: 'button',
+				iconCls: "icon-directory-open",
+				tooltip: 'Load Saved Playlist',
+				handler: function (btn) {
+					mpd.browser.playlistChooser.showOpen(btn.el)
 				}
 			},
 			{
@@ -510,9 +603,7 @@ mpd.browser.createPlaylistToolbar = function () {
 				iconCls: "icon-save",
 				tooltip: 'Save Playlist',
 				handler: function () {
-					var combo = Ext.getCmp('txtplaylist')
-					var callBack = combo.store.load.createDelegate(combo.store)
-					mpd.cmd(['save', combo.getValue()], callBack)
+					mpd.browser.playlistChooser.showSave(btn.el)
 				}
 			},
 			{

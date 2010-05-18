@@ -58,7 +58,8 @@ div.add:hover,
 	background: url("icons/fugue/disc-case-label.png") no-repeat !important;
 }
 .x-tree-node-expanded .icon-directory,
-.x-tree-selected .icon-directory {
+.x-tree-selected .icon-directory,
+.icon-directory-open {
 	background: url("icons/fugue/folder-horizontal-open.png") no-repeat !important;
 }
 .icon-edit {

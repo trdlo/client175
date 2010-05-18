@@ -19,7 +19,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-from mpd import MPDClient, ConnectionError
+from mpd import MPDClient, ConnectionError, MPDError
 from datetime import datetime
 import threading, re, os, socket
 from copy import deepcopy
@@ -57,32 +57,27 @@ class _MpdPlaylist(list):
 
     def __init__(self):
         self.version = -1
-        self.files = {}
+        self.files = None
 
     def getByFile(self, fpath):
+        if self.files is None:
+            self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
         index = self.files.get(fpath, None)
         if index is None:
             return None
         else:
             return self[index]
 
-    def getByPos(self, index):
-        return self[index]
-
     def update(self, changes, new_length):
         old_length = len(self)
         if new_length >= old_length:
             for x in range(new_length - old_length):
                 self.append(None)
-            for change in changes:
-                pos = int(change['pos']) - 1
-                self[pos] = change
-                self.files[change['file']] = pos
         else:
             del self[new_length:]
-            for change in changes:
-                self[int(change['pos'])-1] = change
-            self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
+        for change in changes:
+            self[int(change['pos'])-1] = change
+        self.files = None
 
 
 class _Mpd_Instance:
@@ -125,9 +120,13 @@ class _Mpd_Instance:
 
     def __getattr__(self, name):
         if name == 'list':
-            fn = self.list
+            return self.list
         elif name == 'listplaylists':
-            fn = self.listplaylists
+            return self.listplaylists
+        elif name == 'load':
+            return self.load
+        elif name == 'save':
+            return self.save
         else:
             fn = self.con.__getattr__(name)
 
@@ -341,8 +340,13 @@ class _Mpd_Instance:
         return data
 
 
-    def load(self, playlistName):
-        if int(self.state['playlistlength']) == 0:
+    def load(self, playlistName, replace=False):
+        if replace:
+            self._safe_cmd(self.con.clear, [])
+        elif int(self.state['playlistlength']) == 0:
+            replace = True
+        ret = self._safe_cmd(self.con.load, [playlistName])
+        if replace:
             self.lock.acquire()
             try:
                 self.state['playlistname'] = playlistName
@@ -352,7 +356,30 @@ class _Mpd_Instance:
                 print '-'*60
             finally:
                 self.lock.release()
-        return self.__getattr__('load')(playlistName)
+        return ret
+
+
+    def save(self, playlistName):
+        OK = False
+        try:
+            ret = self._safe_cmd(self.con.save, [playlistName])
+            OK = True
+        except MPDError, e:
+            if '{save} Playlist already exists' in str(e):
+                self._safe_cmd(self.con.rm, [playlistName])
+                ret = self._safe_cmd(self.con.save, [playlistName])
+                OK = True
+        if OK:
+            self.lock.acquire()
+            try:
+                self.state['playlistname'] = playlistName
+            except Exception, e:
+                print '-'*60
+                traceback.print_exc(file=sys.stdout)
+                print '-'*60
+            finally:
+                self.lock.release()
+        return ret
         
         
     def password(self, pw):
