@@ -252,8 +252,8 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
                         '<tpl if="title">' +
                             '<div id="{id}" class="remove {cls}">{pos}.</div>' +
                         '</tpl><tpl if="!title">' +
-                            '<div " class="x-toolbar {cls}">&nbsp;' +
-                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/>&nbsp;</tpl>' +
+                            '<div class="x-toolbar {cls}" style="height:30px;">&nbsp;' +
+                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br>&nbsp;</tpl>' +
                             '</div>' +
                         '</tpl>'
                     },
@@ -265,9 +265,9 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
 							'<div class="{cls}">{title}' +
 						'</tpl>' +
                         '<tpl if="!title">' +
-							'<div class="x-toolbar {cls}">' +
-                            '<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
-                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
+							'<div class="x-toolbar {cls}" style="height:30px;">' +
+                            '<b style="white-space:nowrap !important;">{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
+                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
                             '<i>{artist}</i>' +
                         '</tpl>' +
                         '</div>'
@@ -300,7 +300,7 @@ mpd.browser.Playlist = Ext.extend(Ext.Panel, {
 							'<div class="x-toolbar {cls}" style="height:68px;">' +
 								'<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
 								'<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
-								'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br/></tpl>' +
+								'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
 								'<i>{artist}</i>' +
 							'</div>' +
                         '</tpl>'
@@ -462,7 +462,7 @@ mpd.browser.playlistChooser = new Ext.Window({
 	title: 'Choose Playlist to Load...',
 	layout: 'vbox',
 	width: 300,
-	height: 200,
+	height: 300,
 	padding: 5,
 	mode: 'open',
 	layoutConfig: {align: 'stretch'},
@@ -482,7 +482,11 @@ mpd.browser.playlistChooser = new Ext.Window({
 					url: '../listplaylists',
 					fields: ['playlist', 'type', 'title', 'any']
 				}),
-				columns: [{header: 'Playlist Name', dataIndex: 'title'}],
+				columns: [{
+					header: 'Playlist Name', 
+					dataIndex: 'title', 
+					tpl: '<div class="icon icon-playlist">{title}</div>'
+				}],
 				listeners: {
 					'selectionchange': function(lst, nodes) {
 						if (nodes.length > 0) {
@@ -490,6 +494,21 @@ mpd.browser.playlistChooser = new Ext.Window({
 							var r = lst.getRecord(nodes[0])
 							t.setValue(r.data.title)
 						}
+					},
+					'dblclick': function(lst, idx, node, event) {
+						var w = lst.ownerCt.ownerCt
+						var fn = (w.mode == 'open') ? w.loadPlaylist : w.savePlaylist
+						fn.call(w)
+					},
+					'contextmenu': function(lst, idx, node, event) {
+						var s = lst.getStore()
+						var r = s.getAt(idx)
+						mpd.context.Show([r.data], event, function (item, event) {
+							var id = item.id
+							if (id == 'mpd-context-add') return null
+							if (id == 'mpd-context-replace') return null
+							s.load()
+						})
 					}
 				}							
 			}
@@ -497,7 +516,8 @@ mpd.browser.playlistChooser = new Ext.Window({
 		{
 			xtype: 'textfield',
 			id: 'txtplaylist-load',
-			text: 'Untitled'
+			text: 'Untitled',
+			margins: '4 0 0 0'
 		}
 	],
 	listeners: {
@@ -519,7 +539,12 @@ mpd.browser.playlistChooser = new Ext.Window({
 				s.show()
 				t.enable()
 				self.setTitle('Save: Enter Playlist Name')
+				t.focus(true, true)
 			}
+		},
+		'show': function(self) {
+			var t = Ext.getCmp('txtplaylist-load')
+			if (!t.disabled) t.focus(true, 100)
 		}
 	},			
 	bbar: [
@@ -528,6 +553,8 @@ mpd.browser.playlistChooser = new Ext.Window({
 			xtype: 'button',
 			text: 'Cancel',
 			iconCls: "icon-cancel",
+			cls: 'x-toolbar-standardbutton',
+			style: 'margin:3px',
 			handler: function(btn) {
 				btn.ownerCt.ownerCt.hide()
 			}
@@ -537,10 +564,11 @@ mpd.browser.playlistChooser = new Ext.Window({
 			text: 'Open',
 			id: 'playlists-load-open',
 			iconCls: "icon-directory-open",
+			cls: 'x-toolbar-standardbutton',
+			style: 'margin:3px',
 			handler: function(btn) {
-				var t = Ext.getCmp('txtplaylist-load')
-				mpd.cmd(['load', t.getValue(), true])
-				btn.ownerCt.ownerCt.hide()
+				var w = btn.ownerCt.ownerCt
+				w.loadPlaylist.call(w)
 			}
 		},
 		{
@@ -548,13 +576,24 @@ mpd.browser.playlistChooser = new Ext.Window({
 			text: 'Save',
 			id: 'playlists-load-save',
 			iconCls: "icon-save",
+			cls: 'x-toolbar-standardbutton',
+			style: 'margin:3px',
 			handler: function(btn) {
-				var t = Ext.getCmp('txtplaylist-load')
-				mpd.cmd(['save', t.getValue()])
-				btn.ownerCt.ownerCt.hide()
+				var w = btn.ownerCt.ownerCt
+				w.savePlaylist.call(w)
 			}
 		}
 	],
+	loadPlaylist: function() {
+		var t = Ext.getCmp('txtplaylist-load')
+		mpd.cmd(['load', t.getValue(), true])
+		this.hide()
+	},
+	savePlaylist: function() {
+		var t = Ext.getCmp('txtplaylist-load')
+		mpd.cmd(['save', t.getValue()])
+		this.hide()
+	},		
 	showOpen: function(el) {
 		this.mode = 'open'
 		this.show(el)
@@ -583,11 +622,17 @@ mpd.browser.createPlaylistToolbar = function () {
 						var n = Ext.value(mpd.status.playlistname, 'Untitled')
 						self.setText(n)
 						appEvents.subscribe('playlistnamechanged', function(){
-							console.log(mpd.status.playlistname)
-							console.log(self)
 							self.setText(mpd.status.playlistname)
 						})
 					}
+				}
+			},
+			{
+				xtype: 'button',
+				iconCls: "icon-clear",
+				tooltip: 'Clear Playlist',
+				handler: function () {
+					mpd.cmd(['clear'])
 				}
 			},
 			{
@@ -602,16 +647,8 @@ mpd.browser.createPlaylistToolbar = function () {
 				xtype: 'button',
 				iconCls: "icon-save",
 				tooltip: 'Save Playlist',
-				handler: function () {
+				handler: function (btn) {
 					mpd.browser.playlistChooser.showSave(btn.el)
-				}
-			},
-			{
-				xtype: 'button',
-				iconCls: "icon-clear",
-				tooltip: 'Clear Playlist',
-				handler: function () {
-					mpd.cmd(['clear'])
 				}
 			}
 		]
@@ -1288,6 +1325,7 @@ Ext.reg('tab-search', mpd.browser.TabSearch)
 mpd.browser.TreeLoader = Ext.extend(Ext.tree.TreeLoader, {
 	createNode: function(attr) {
         if (!attr.text) attr.text = attr.title
+        if (attr.songs) attr.text += ' <span style="color:#808080">(' + attr.songs + ')</span>'
 		if (!attr.iconCls) attr.iconCls = 'icon-' + attr.type
         switch (attr.type) {
             case 'playlist':
@@ -1320,10 +1358,11 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                 },
                 listeners: {
 					'beforeload': function(treeLoader, node) {
-						var cmd = node.attributes.cmd
+						var a = node.attributes
+						var cmd = a.cmd
                         if (!cmd) {
-                            var t = node.attributes.type
-                            var val = node.attributes[t]
+                            var t = a.type
+                            var val = a[t]
                             switch (t) {
                                 case 'directory':
                                     cmd = 'lsinfo "' + val + '"';
@@ -1336,6 +1375,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                                     break;
                             }
                         }
+                        treeLoader.baseParams.mincount = a.mincount || 0
                         treeLoader.baseParams.cmd = cmd
 					}
 				}
@@ -1355,11 +1395,33 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
 						}
 					}
                 }, {
-                    nodeType: 'async',
-                    id: 'artist:',
                     text: '<b>Artist/Albums</b>',
                     iconCls: 'icon-group-album',
-                    cmd: 'list artist'
+                    children: [
+						{
+							nodeType: 'async',
+							id: 'artist:',
+							text: '<b>All Artists</b>',
+							iconCls: 'icon-group-artist',
+							cmd: 'list artist'
+						},
+						{
+							nodeType: 'async',
+							id: 'artist:4',
+							text: '<b>Minimum 4 Songs</b>',
+							iconCls: 'icon-group-artist',
+							cmd: 'list artist',
+							mincount: 4
+						},
+						{
+							nodeType: 'async',
+							id: 'artist:4',
+							text: '<b>Minimum 10 Songs</b>',
+							iconCls: 'icon-group-artist',
+							cmd: 'list artist',
+							mincount: 10
+						}
+                    ]
                 }, {
                     nodeType: 'async',
                     id: 'directory:',
