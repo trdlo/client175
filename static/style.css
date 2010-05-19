@@ -2,8 +2,10 @@
  * Icons
  **********************************************************************/
 .icon {
-	height: 16px;
-	width: 18px
+	min-height: 16px;
+	min-width: 16px;
+	line-height: 16px;
+	padding-left: 18px;
 }
 .icon-about {
 	background: url("icons/fugue/information.png") no-repeat !important;
@@ -20,11 +22,11 @@ div.add {
 	opacity: 0.15;
 	-khtml-opacity: 0.15;
 }
-div.add:hover,
 .icon-add {
 	background: url("icons/fugue/plus.png") no-repeat !important;
 }	
-.simulated_hover div.add{
+.simulated_hover div.add,
+div.add:hover {
 	filter:alpha(opacity=100) !important;
 	-moz-opacity: 1.0 !important;
 	opacity: 1.0 !important;

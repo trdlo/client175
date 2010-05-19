@@ -288,8 +288,9 @@ class Root:
 
     def query(self, cmd, start=0, limit=0, sort='', dir='ASC', **kwargs):
         node = kwargs.get("node", False)
-        if node:             
-            return self.tree(cmd, node)
+        if node:
+            m = int(kwargs.get('mincount', 0))
+            return self.tree(cmd, node, m)
             
         start = int(start)
         if sort:
@@ -326,7 +327,7 @@ class Root:
     status.exposed = True
 
 
-    def tree(self, cmd, node, **kwargs):
+    def tree(self, cmd, node, mincount=0, **kwargs):
         if node == 'directory:':
             result = []
             rawdata = mpd.listall()
@@ -355,13 +356,16 @@ class Root:
             root = {}
             loadChildren(root, '')
             result = root['children']
-        else:           
+        else:
             itemType = node.split(":")[0]
             data = [x for x in mpd.execute_sorted(cmd, itemType) if x.get('title')]
+            if mincount:
+                mincount -= 1
+                data = [x for x in data if x['songs'] > mincount]
             
-            if itemType in 'directory':
+            if itemType == 'directory':
                 result = [x for x in data if x['type'] == itemType]
-            elif len(data) > 200:
+            elif len(data) > 100:
                 result = []
                 iconCls = 'icon-group-'+itemType
                 cls = 'group-by-letter'

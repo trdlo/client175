@@ -318,10 +318,13 @@ class _Mpd_Instance:
         data = self._safe_cmd(self.con.list, args)
         for index in range(len(data)):
             item = data[index]
+            c = self._safe_cmd(self.con.count, (what, item))
             data[index] = {
                 'title': item,
                 'type': what,
                 what: item,
+                'playtime': int(c['playtime']),
+                'songs': int(c['songs']),
                 'any': item
             }
         return data
