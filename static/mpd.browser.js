@@ -1415,7 +1415,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
 						},
 						{
 							nodeType: 'async',
-							id: 'artist:4',
+							id: 'artist:10',
 							text: '<b>Minimum 10 Songs</b>',
 							iconCls: 'icon-group-artist',
 							cmd: 'list artist',
