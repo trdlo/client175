@@ -10,6 +10,7 @@ mpd.util.context.items = {
             Ext.each(data, function(d){
                 mpd.cmd(['add', d.type, d[d.type]])
             })
+            self.ownerCt.lastCommand = self.id
         }
     },
     'replace': {
@@ -26,7 +27,7 @@ mpd.util.context.items = {
                     mpd.cmd(['add', d.type, d[d.type]])
                 })
             }
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'rename': {
@@ -43,7 +44,7 @@ mpd.util.context.items = {
                 }
             }
             Ext.Msg.prompt(t, msg, fn, this, false, d.title)
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'rm': {
@@ -55,7 +56,7 @@ mpd.util.context.items = {
             Ext.each(data, function(d){
                 mpd.cmd(['rm', d.playlist])
             })
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'update': {
@@ -67,7 +68,7 @@ mpd.util.context.items = {
             Ext.each(data, function(d){
                 mpd.cmd(['update', d[d.type]])
             })
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'play': {
@@ -77,7 +78,7 @@ mpd.util.context.items = {
         handler: function(self, event) {
             var data = self.ownerCt.itemData
             mpd.cmd(['playid', data[0].id])
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'delete': {
@@ -89,7 +90,7 @@ mpd.util.context.items = {
             Ext.each(data, function(d){
                 mpd.cmd(['deleteid', d.id])
             })
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'move-start': {
@@ -100,7 +101,7 @@ mpd.util.context.items = {
             var data = self.ownerCt.itemData
             var ids = Ext.pluck(data, 'id')
             mpd.cmd(['movestart', ids.join(".")])
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     },
     'move-end': {
@@ -111,12 +112,13 @@ mpd.util.context.items = {
             var data = self.ownerCt.itemData
             var ids = Ext.pluck(data, 'id')
             mpd.cmd(['moveend', ids.join(".")])
-            self.ownerCt.lastCommand = self
+            self.ownerCt.lastCommand = self.id
         }
     }
 }
 
 mpd.util.context.show = function(itemData, event) {
+    if (itemData.length < 1) return null
     var a = mpd.util.context.items
     if (itemData[0].pos) {
         var items = [a['play'], a['delete'], a['move-start'], a['move-end']]
