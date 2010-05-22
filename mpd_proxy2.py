@@ -384,6 +384,7 @@ class _Mpd_Instance:
             self.lock.acquire()
             try:
                 self.state['playlistname'] = playlistName
+                self.state['playlists'] = datetime.utcnow().ctime()
             except Exception, e:
                 print '-'*60
                 traceback.print_exc(file=sys.stdout)

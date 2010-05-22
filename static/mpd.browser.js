@@ -547,12 +547,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     id: 'playlist:',
                     text: '<b>Playlists</b>',
                     iconCls: 'icon-group-playlist',
-                    cmd: 'listplaylists',
-                    listeners: {
-						beforeexpand: function (self) {
-							self.loaded = false
-						}
-					}
+                    cmd: 'listplaylists'
                 }, 
                 {
                     text: '<b>Artist / Albums</b>',
@@ -612,6 +607,10 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                         tree.root.eachChild(function(node){
                             if (node.isLoaded()) node.reload()
                         })
+                    })
+                    appEvents.subscribe('playlistschanged', function(){
+                        var node = tree.root.findChild('id', 'playlist:')
+                        if (node.isLoaded()) node.reload()
                     })
                 },
                 'contextmenu': function(node, event) {
