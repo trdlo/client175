@@ -34,8 +34,8 @@ mpd.init = function(){
 						xtype: 'playlist_sidebar',
 						//playlistStyle: 'titles',
 						//playlistStyle: '3line',
-						playlistStyle: 'albums',
-						//playlistStyle: 'albumcovers',
+						//playlistStyle: 'albums',
+						playlistStyle: 'albumcovers',
 						iconCls: 'icon-playlist',
 					},
 					{xtype: 'info-panel'},
@@ -84,4 +84,5 @@ Ext.onReady(function(){
 		}
     })	
 });
+document.title = 'ExtMPD: ' + location.hostname
 
