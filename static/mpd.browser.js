@@ -1,5 +1,5 @@
 Ext.namespace('mpd.browser')
-mpd.PAGE_LIMIT = 200
+mpd.PAGE_LIMIT = 400
 mpd.TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
 mpd.EXTRA_FIELDS = []
 
@@ -133,9 +133,6 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				displayInfo: true,
 				displayMsg: 'Displaying items {0} - {1} of {2}',
 				emptyMsg: "No items to display",
-                plugins: [
-                    new Ext.ux.plugins.PageCycleResizer({pageSizes: [25, 50, 100, 200, 400, 800]})
-                ],
 				prependButtons: true,
 				items: ['Filter: ', ' ', this.filter, '-']
 			}),
