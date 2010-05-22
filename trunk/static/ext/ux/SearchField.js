@@ -72,6 +72,7 @@ Ext.app.FilterField = Ext.extend(Ext.form.TwinTriggerField, {
                 if (tm > 0) dt.delay(tm)
                 else dt.delay(0)
             });
+            this.store.on('load', function() {el.value = ''})
         }, this)
     },
 

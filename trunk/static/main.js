@@ -21,6 +21,7 @@ mpd.init = function(){
 			{
 				region: 'east',
 				layout: 'accordion',
+				id: 'mpd-sidebar',
 				split: true,
 				minWidth: 200,
 				width: 300,    
