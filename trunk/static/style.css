@@ -41,6 +41,9 @@ div.add:hover {
 .icon-artist, .icon-albumartist {
 	background: url("icons/fugue/microphone.png") no-repeat !important;
 }
+.icon-bottom {
+	background: url("icons/fugue/arrow-stop-270.png") no-repeat !important;
+}
 .icon-cancel {
 	background: url("icons/fugue/cross-script.png") no-repeat !important;
 }
@@ -103,6 +106,9 @@ div.add:hover {
 	height: 42px !important;
 	width: 39px !important;
 }
+.icon-play-small {
+	background: url("icons/fugue/control.png") no-repeat !important;
+}
 .icon-playlist {
 	background: url("icons/fugue/document-music.png") no-repeat !important;
 }
@@ -151,6 +157,9 @@ div.remove:hover,
 	background: url("images/stop.png") no-repeat !important;
 	height: 16px !important;
 	width: 16px !important;
+}
+.icon-top {
+	background: url("icons/fugue/arrow-stop-090.png") no-repeat !important;
 }
 
 /***********************************************************************

@@ -243,6 +243,31 @@ class Root:
     lyrics.exposed = True
 
 
+    def moveend(self, ids, **kwargs):
+        if ids:
+            ids = ids.split(".")
+            mpd.command_list_ok_begin()
+            end = len(mpd.playlist) - 1
+            for id in ids:
+                if id.isdigit():
+                    mpd.moveid(id, end)
+            mpd.command_list_end()
+            return "OK"
+    moveend.exposed = True
+
+
+    def movestart(self, ids, **kwargs):
+        if ids:
+            ids = reversed(ids.split("."))
+            mpd.command_list_ok_begin()
+            for id in ids:
+                if id.isdigit():
+                    mpd.moveid(id, 0)
+            mpd.command_list_end()
+            return "OK"
+    movestart.exposed = True
+
+
     def password(self, passwd=None):
         if passwd is not None:
             mpd.password(passwd)
@@ -358,7 +383,7 @@ class Root:
             result = root['children']
         else:
             itemType = node.split(":")[0]
-            data = [x for x in mpd.execute_sorted(cmd, itemType) if x.get('title')]
+            data = [x for x in mpd.execute_sorted(cmd, 'title') if x.get('title')]
             if mincount:
                 mincount -= 1
                 data = [x for x in data if x['songs'] > mincount]

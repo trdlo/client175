@@ -109,6 +109,7 @@ class _Mpd_Instance:
         self.con = None
         self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
         self.state_stamp = datetime.utcnow()
+        self.state['playlists'] = self.state_stamp.ctime()
         self.playlist = _MpdPlaylist()
         self._dbcache = {}
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
@@ -132,8 +133,15 @@ class _Mpd_Instance:
 
         if name in ('lsinfo', 'find', 'search', 'playlistinfo', 'listplaylistinfo'):
             return lambda *args: self._extendDbResult(self._safe_cmd(fn, args))
-        else:
-            return lambda *args: self._safe_cmd(fn, args)
+        elif name in ('save', 'rm', 'rename'):
+            try:
+                self.lock.acquire()
+                self.state['playlists'] = datetime.utcnow().ctime()
+            except Exception, e:
+                print e
+            finally:
+                self.lock.release()
+        return lambda *args: self._safe_cmd(fn, args)
 
 
     def _connect(self):
