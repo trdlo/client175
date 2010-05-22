@@ -370,7 +370,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
         })
 
         new_list.on('contextmenu', function(lstView, rowIdx, node, evt) {
-            if (!lstView.isSelected(node)) lstView.select(node, true)
+            if (!lstView.isSelected(node)) lstView.select(node)
             var recs = lstView.getSelectedRecords()
             var data = Ext.pluck(recs, 'data')
             mpd.util.context.show(data, evt)

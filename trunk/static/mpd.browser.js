@@ -206,7 +206,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                 "rowcontextmenu": function (grid, rowIdx, event) {
 					event.stopEvent()
 					var sm = grid.getSelectionModel()
-					if (!sm.isSelected(rowIdx)) sm.selectRow(rowIdx, true)
+					if (!sm.isSelected(rowIdx)) sm.selectRow(rowIdx)
 					var recs = sm.getSelections()
 					var d = []
 					Ext.each(recs, function(item) {

@@ -6,11 +6,11 @@ mpd.util.context.items = {
         id: 'mpd-context-add',
         iconCls: 'icon-add',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             Ext.each(data, function(d){
                 mpd.cmd(['add', d.type, d[d.type]])
             })
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
     'replace': {
@@ -18,7 +18,7 @@ mpd.util.context.items = {
         id: 'mpd-context-replace',
         iconCls: 'icon-replace',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             if (data.length == 1 && data[0].type == 'playlist') {
                 mpd.cmd(['load', data[0].playlist, true])
             } else {
@@ -27,7 +27,7 @@ mpd.util.context.items = {
                     mpd.cmd(['add', d.type, d[d.type]])
                 })
             }
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
     'rename': {
@@ -35,7 +35,7 @@ mpd.util.context.items = {
         id: 'mpd-context-rename',
         iconCls: 'icon-edit',
         handler: function(self, event) {
-            var d = self.ownerCt.itemData[0]
+            var d = mpd.util.context.itemData[0]
             var t = "Rename Playlist"
             var msg = "Enter a new name for this playlist:"
             var fn = function(btn, text) {
@@ -44,7 +44,7 @@ mpd.util.context.items = {
                 }
             }
             Ext.Msg.prompt(t, msg, fn, this, false, d.title)
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
     'rm': {
@@ -52,11 +52,11 @@ mpd.util.context.items = {
         id: 'mpd-context-rm',
         iconCls: 'icon-cancel',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             Ext.each(data, function(d){
                 mpd.cmd(['rm', d.playlist])
             })
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
     'update': {
@@ -64,11 +64,11 @@ mpd.util.context.items = {
         id: 'mpd-context-update',
         iconCls: 'icon-refresh',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             Ext.each(data, function(d){
                 mpd.cmd(['update', d[d.type]])
             })
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
     'play': {
@@ -76,74 +76,80 @@ mpd.util.context.items = {
         id: 'mpd-context-play',
         iconCls: 'icon-play-small',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             mpd.cmd(['playid', data[0].id])
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
-    'delete': {
+    'remove': {
         text: 'Remove from Playlist',
-        id: 'mpd-context-delete',
+        id: 'mpd-context-remove',
         iconCls: 'icon-cancel',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             Ext.each(data, function(d){
                 mpd.cmd(['deleteid', d.id])
             })
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
-    'move-start': {
+    'move_start': {
         text: 'Move to start',
         id: 'mpd-context-move-start',
         iconCls: 'icon-top',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             var ids = Ext.pluck(data, 'id')
             mpd.cmd(['movestart', ids.join(".")])
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     },
-    'move-end': {
+    'move_end': {
         text: 'Move to End',
         id: 'mpd-context-move-end',
         iconCls: 'icon-bottom',
         handler: function(self, event) {
-            var data = self.ownerCt.itemData
+            var data = mpd.util.context.itemData
             var ids = Ext.pluck(data, 'id')
             mpd.cmd(['moveend', ids.join(".")])
-            self.ownerCt.lastCommand = self.id
+            mpd.util.context.lastCommand = self.id
         }
     }
 }
 
+mpd.util.context.menu = new Ext.menu.Menu()
+mpd.util.context.add = mpd.util.context.menu.addMenuItem.createDelegate(mpd.util.context.menu)
+
 mpd.util.context.show = function(itemData, event) {
     if (itemData.length < 1) return null
-    var a = mpd.util.context.items
+    var muc = mpd.util.context
+    var add = muc.add
+    var c = muc.items
+    muc.menu.removeAll()
     if (itemData[0].pos) {
-        var items = [a['play'], a['delete'], a['move-start'], a['move-end']]
+        add(c.play)
+        add(c.remove)
+        add(c.move_start)
+        add(c.move_end)
     } else {
-        var items = [a['add'], a['replace']]
+        add(c.add)
+        add(c.replace)
         switch (itemData[0].type) {
             case 'playlist':
-                items.push(a['rename']);
-                items.push(a['rm']);
+                add(c.rename);
+                add(c.rm);
                 break;
             case 'directory':
-                items.push(a['update']);
+                add(c.update);
                 break;
             case 'file':
-                items.push(a['update']);
+                add(c.update);
                 break;
         }
     }
-    var m = new Ext.menu.Menu({
-        items: items,
-        itemData: itemData,
-        lastCommand: null
-    })
-    m.showAt(event.getXY())
-    return m
+    muc.itemData = itemData
+    muc.lastCommand = null
+    muc.menu.showAt(event.getXY())
 }
 
 
