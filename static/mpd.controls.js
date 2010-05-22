@@ -141,6 +141,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
                     pack: 'center',
                     hidden: true,
                     height: 58,
+                    width: 48,
                     items: [
                         {
                             xtype: 'button',
@@ -275,11 +276,11 @@ mpd.Controls = Ext.extend(Ext.Container, {
                 Ext.getCmp('btnStopPause').hide()
                 Ext.getCmp('btnPlay').show()
             } else {
-                Ext.getCmp('btnStopPause').show()
                 Ext.getCmp('btnPlay').hide()
+                Ext.getCmp('btnStopPause').show()
             }
             Ext.getCmp('btnPause').toggle((mpd.status.state == 'pause'))
-            self.doLayout()
+            statusControls.doLayout(false, true)
         })
         
         appEvents.subscribe('titlechanged', function(){

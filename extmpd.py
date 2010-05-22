@@ -390,7 +390,7 @@ class Root:
             
             if itemType == 'directory':
                 result = [x for x in data if x['type'] == itemType]
-            elif len(data) > 100:
+            elif len(data) > 200:
                 result = []
                 iconCls = 'icon-group-'+itemType
                 cls = 'group-by-letter'
