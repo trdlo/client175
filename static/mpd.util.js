@@ -1,5 +1,13 @@
 Ext.namespace('mpd.util.context')
 
+function titleCase(s) {
+    if (!Ext.isString(s)) return s
+    if (s.length == 0) return ''
+    if (s.length == 1) return s.toUpperCase()
+    return s.substr(0,1).toUpperCase() + s.substr(1)
+}
+
+
 mpd.util.context.items = {
     'add': {
         text: 'Add to Playlist',

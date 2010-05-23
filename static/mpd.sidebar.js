@@ -53,9 +53,14 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
 					'<a href="#" onclick="mpd.util.editLyrics(this)">Edit Lyrics</a>',
 				'</div>',
 			'</center>'
-			)
+			),
+            listeners: {
+                activate: function(p) {
+                    if (p.delayedRecord) p.loadRecord(p.delayedRecord)
+                }
+            }
 		})
-			
+        this.delayedRecord = null
         Ext.apply(this, config)
         mpd.sidebar.InfoPanel.superclass.constructor.apply(this, arguments);
 	},
@@ -78,18 +83,23 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
 	loadRecord: function(rec) {
 		if (!Ext.isObject(rec)) return null
 		if (!Ext.isObject(rec.data)) return null
-		var d = rec.data, old = this.record.data
-		if (d.type != 'file') return null
-		if ((d.artist != old.artist) || (d.album != old.album)) {
-			d.cover_url = '../covers?' + Ext.urlEncode({
-				artist: d.artist,
-				album:d.album
-			})
-			this.update(d)
-			this.doLayout()
-		}
-		this.record = rec
-		this.loadLyrics()
+        if (this.ownerCt.layout.activeItem.id != this.id) {
+            this.delayedRecord = rec
+        } else {
+            this.delayedRecord = null
+            var d = rec.data, old = this.record.data
+            if (d.type != 'file') return null
+            if ((d.artist != old.artist) || (d.album != old.album)) {
+                d.cover_url = '../covers?' + Ext.urlEncode({
+                    artist: d.artist,
+                    album:d.album
+                })
+                this.update(d)
+                this.doLayout()
+            }
+            this.record = rec
+            this.loadLyrics()
+        }
 	},
 	reload: function() {
 		this.loadRecord(this.record)
@@ -500,6 +510,9 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 				},
 				'afterrender': function () {
 					this.loadMask = new Ext.LoadMask(this.bwrap, {msg:"Saving Changes..."});
+				},
+				'activate': function (p) {
+					if (p.delayedRecords) p.loadRecords(p.delayedRecords)
 				}
 			}
 		})
@@ -536,6 +549,11 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		})
 	},
     loadRecords: function(records) {
+        if (this.ownerCt.layout.activeItem.id != this.id) {
+            this.delayedRecords = records
+            return null
+        }
+        this.delayedRecords = null
 		// Filter recods for file(s) or a single playlist selection
 		var recs = []
 		if (Ext.isArray(records)) {

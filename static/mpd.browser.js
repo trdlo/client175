@@ -16,6 +16,7 @@ mpd.dbFields = function() {
         {'name': 'title'},
         {'name': 'album'},
         {'name': 'artist'},
+        {'name': 'songs', 'type': 'int'},
         {'name': 'time', 'type': 'int'},
         {'name': 'ptime'},
         {'name': 'cls'},
@@ -27,6 +28,26 @@ mpd.dbFields = function() {
 
 mpd.browser.renderIcon = function(val, meta, rec, row, col, store) {
     return '<div class="icon icon-'+val+'"/>'
+}
+
+
+mpd.browser.renderCountIfType = function(field) {
+	return function(val, meta, rec, row, col, store) {
+		switch (rec.data.type) {
+			case 'file': return val; break;
+			case field: 
+				var c = rec.data.songs
+				return (c) ? '<span class="song-count">' + c + ' songs</span>' : '';
+				break;
+			default: return ''
+		}
+	}
+}
+
+
+mpd.browser.renderIfFile = function(val, meta, rec, row, col, store) {
+    if (rec.data.type == 'file') return val
+    return ''
 }
 
 
@@ -42,9 +63,9 @@ Ext.override(Ext.grid.GridView, {
 mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
     constructor: function(config) {
         var self = this
-        this.cwd = null
+        this.cwd = ''
         this.config = config || {}
-        var cmd = this.config.cmd || 'lsinfo'  
+        var cmd = this.config.cmd || ''  
         if (!this.store) {
             this.store = new Ext.data.Store({
                 autoLoad: false,
@@ -72,7 +93,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 		var cols = [
 			{id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
 				renderer: function(val, meta, rec){
-					if (self.cwd == 'home') return ''
+					if (self.cwd == '') return ''
 					if (val) {
 						return '<div class="remove">' + val + '.</div>'
 					} else {
@@ -83,8 +104,8 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'ctrack', header: 'Track', dataIndex: 'track', width: 40, align: 'right', hidden: true},
 			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: mpd.browser.renderIcon},
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
-			{id: 'calbum', header: "Album", dataIndex: 'album'},
-			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
+			{id: 'calbum', header: "Album", dataIndex: 'album', renderer: mpd.browser.renderIfFile},
+			{id: 'cartist', header: "Artist", dataIndex: 'artist', renderer: mpd.browser.renderIfFile},
 			{id: 'ctime', header: "Time", width: 40, dataIndex: 'time',
 				renderer: function(val, meta, rec){
 					return rec.data.ptime
@@ -95,8 +116,15 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			cols.push({
 				header: item.header,
 				dataIndex: item.name,
+				renderer: mpd.browser.renderIfFile,
 				hidden: true
 			})
+		})
+		cols.push({
+			header: 'Song Count',
+			dataIndex: 'songs',
+			width: 40,
+			hidden: true
 		})
 		
         Ext.apply(this, {
@@ -144,9 +172,6 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                     var rec = self.store.getAt(rowIdx)
                     var row = rec.data
                     switch (col) {
-                        case 'cicon':
-                            //self.goTo(row)
-                            break;
                         case 'cpos':
                             var cur = self.selected
                             isInSelected = false
@@ -165,15 +190,19 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                                     switch (row.type) {
                                         case 'file': 
                                             mpd.cmd( ['add', row.file] )
+                                            rec.set('pos', "..")
                                             break;
                                         case 'directory': 
                                             mpd.cmd( ['add', row.directory] )
+                                            rec.set('pos', "..")
                                             break;
                                         default:
-                                            mpd.cmd( ['add', row.type, row.title] )
+											if (row[row.type] > "") {
+												mpd.cmd( ['add', row.type, row.title] )
+												rec.set('pos', "..")
+											}
                                     }                                        
                                 }
-                                rec.set('pos', "..")
                             })
                             sm.clearSelections()
                             self.selected = []
@@ -202,6 +231,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                 },
                 "rowcontextmenu": function (grid, rowIdx, event) {
 					event.stopEvent()
+					if (self.cwd == '') return false
 					var sm = grid.getSelectionModel()
 					if (!sm.isSelected(rowIdx)) sm.selectRow(rowIdx)
 					var recs = sm.getSelections()
@@ -210,11 +240,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 						d.push(item.data)
 					})
 					mpd.util.context.show(d, event)
-				},
-                'rowdblclick': function(g, rowIdx, e) {
-                    var row = self.getStore().getAt(rowIdx).data
-                    self.goTo(row)
-                }
+				}
             }
         });
         Ext.apply(this, config)
@@ -263,32 +289,47 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
         var self = this
         this.getTopToolbar().add({
             iconCls: 'icon-home',
-            handler: function(){ self.goTo('/')}
+            handler: function(){ self.goTo('')}
         })
+        this.on('rowdblclick', function(g, rowIdx, e) {
+			var row = self.getStore().getAt(rowIdx).data
+			self.goTo(row)
+		})
     },
 
     goTo: function(obj) {
 		if (Ext.isObject(obj)) {
 			var itemType = obj.type
-			dir = obj[obj.type]
+			if (itemType == 'time') {
+				itemType = 'directory'
+				var dir = '/'
+			} else {
+				var dir = obj[obj.type]
+			}
 		} else {
-			var itemType = 'directory'
-			var dir = obj
+			if (obj == '') {
+				var itemType = 'home'
+				var dir = ''
+			} else {
+				var itemType = 'directory'
+				var dir = obj
+			}
 		}
         if (dir && dir != "/" && dir.substr(0,1) == "/") dir = dir.slice(1)
         dir = (Ext.isDefined(dir)) ? dir : this.cwd
         var isSearch = false
+        var isList = false
         var g = this
         var store = this.store
 
         // Load new location
 		switch (itemType) {
+			case 'home':
+				store.baseParams = {cmd: ''};
+				break;
 			case 'search':
 				isSearch = true;
 				store.baseParams = {cmd: 'search any "' + dir + '"'};
-				break;
-			case 'playlist': 
-				store.baseParams = {cmd: 'listplaylistinfo "' + dir + '"'};
 				break;
 			case 'directory':
 				store.baseParams = {cmd: 'lsinfo "' + dir + '"'};
@@ -301,8 +342,21 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 				}
 				return null;
 				break;
+			case 'playlist': 
+				if (dir > "") {
+					store.baseParams = {cmd: 'listplaylistinfo "' + dir + '"'};
+				} else {
+					store.baseParams = {cmd: 'listplaylists'};
+					isList = true
+				}
+				break;
 			default:
-				store.baseParams = {cmd: 'find ' + itemType +' "' + dir + '"'};
+				if (dir > "") {
+					store.baseParams = {cmd: 'find ' + itemType +' "' + dir + '"'};
+				} else {
+					store.baseParams = {cmd: 'list "' + itemType +'"'};
+					isList = true
+				}
 		}
 		
 		// Remove any sort
@@ -312,12 +366,18 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 			vw.mainHd.select('td').removeClass(['sort-asc', 'sort-desc'])
 			store.sortInfo = {'field': '', 'dir': ''}
 		}
+		if (isList) {
+			store.sortInfo = {'field': 'title', 'dir': 'ASC'}
+		}
 		
         var tb = g.getTopToolbar()
         var p = g.findParentByType('panel')
-        var t = '/'
-        if (dir != this.cwd || isSearch) {
-            if (!isSearch) this.cwd = dir
+        var t = ''
+        if (dir != this.cwd || isSearch || isList) {
+            if (!isSearch && !isList) this.cwd = dir
+            if (isList) {
+				this.cwd = itemType + ":"
+			}
             store.load({
 				params: {
 					'start': 0, 
@@ -336,54 +396,104 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
             btn = tb.getComponent(0)
             if (!btn) tb.addButton({
                 iconCls: 'icon-home',
-                dir: '/',
+                dir: '',
                 handler: function(){g.goTo(this.dir)}
             })
 
             // Create new Path buttons
             x = 1
-            if (dir != '/') {
-                if (isSearch) {
-                    tb.insertButton(x++, {
-                        text: 'Clear Search ('+ dir + ')',
-                        id: this.cwd,
-                        handler: function(){
-                            g.cwd = "<<<Nothing>>>"
-                            g.goTo(this.id)
-                        }
-                    })
-                    tb.add("->")
-                    tb.addButton({
-                        text: 'Add All',
-                        iconCls: 'icon-add',
-                        handler: function(){mpd.cmd(['add', 'search', dir])}
-                    })
-                } else {
-                    if (dir > '/') {
-                        var parts = dir.split("/")
-                        var path = ''
-                        var self = this
-                        for (var i = 0, len = parts.length; i < len; i++) {
-                            t = parts[i]
-                            path += '/' + t
-                            tb.insert(x++, '-')
-                            tb.insertButton(x++, {
-                                text: t,
-                                dir: path,
-                                handler: function(){g.goTo(this.dir)}
-                            })
-                        }
-                    }
-                    tb.add("->")
-                    tb.addButton({
-                        text: 'Add All',
-                        iconCls: 'icon-add',
-                        handler: function(){mpd.cmd( ['add', itemType, dir])}
-                    })
-                    p.setTitle(t)
-                    p.setIconClass('icon-'+itemType)
-                }
-            }
+			if (isSearch) {
+				t = 'Search: ' + dir
+				tb.insertButton(x++, {
+					text: 'Clear Search ('+ dir + ')',
+					id: this.cwd,
+					handler: function(){
+						g.cwd = "<<<Nothing>>>"
+						g.goTo(this.id)
+					}
+				})
+				tb.add("->")
+				tb.addButton({
+					text: 'Add All',
+					iconCls: 'icon-add',
+					handler: function(){mpd.cmd(['add', 'search', dir])}
+				})
+			} else if (isList) {
+				t = titleCase(itemType) + 's'
+				var base = {'type': itemType}
+				base[itemType] = ''
+				tb.insert(x++, '-')
+				tb.insertButton(x++, {
+					text: t,
+					iconCls: 'icon-group-unknown icon-group-'+itemType,
+					id: itemType+":",
+					handler: function(){ g.goTo(base) }
+				})
+				tb.add("->")
+				tb.addButton({
+					text: 'Add All',
+					iconCls: 'icon-add',
+					handler: function(){mpd.cmd(['add', '/'])}
+				})
+			} else if (itemType == 'directory') {
+				t = 'Folders'
+				tb.insert(x++, '-')
+				tb.insertButton(x++, {
+					text: 'Folders',
+					iconCls: 'icon-directory',
+					id: '/',
+					handler: function(){ g.goTo(this.id) }
+				})
+				if (dir > '/') {
+					var parts = dir.split("/")
+					var path = ''
+					var self = this
+					for (var i = 0, len = parts.length; i < len; i++) {
+						t = parts[i]
+						path += '/' + t
+						tb.insert(x++, '-')
+						tb.insertButton(x++, {
+							text: t,
+							dir: path,
+							handler: function(){g.goTo(this.dir)}
+						})
+					}
+				}
+					
+				tb.add("->")
+				tb.addButton({
+					text: 'Add All',
+					iconCls: 'icon-add',
+					handler: function(){mpd.cmd( ['add', itemType, dir])}
+				})
+			} else if (itemType != 'home') {
+				t = titleCase(itemType) + 's'
+				var base = {'type': itemType}
+				base[itemType] = ''
+				tb.insert(x++, '-')
+				tb.insertButton(x++, {
+					text: t,
+					iconCls: 'icon-group-unknown icon-group-'+itemType,
+					id: itemType+":",
+					handler: function(){ g.goTo(base) }
+				})
+				tb.insert(x++, '-')
+				tb.insertButton(x++, {
+					text: dir,
+					iconCls: 'icon-'+itemType,
+					id: this.cwd,
+					handler: function(){ g.goTo(this.id) }
+				})
+				tb.add("->")
+				tb.addButton({
+					text: 'Add All',
+					iconCls: 'icon-add',
+					handler: function(){mpd.cmd(['add', itemType, dir])}
+				})
+			}
+				
+			p.setTitle(t)
+			p.setIconClass('icon-'+itemType)
             tb.doLayout()
         } else {
             g.getView().holdPosition = true
@@ -399,7 +509,12 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridBase, {
         config.tbar = mpd.util.createPlaylistToolbar()
         config.cmd = 'playlistinfo'
         Ext.apply(this, config)
-        mpd.browser.PlaylistPanel.superclass.constructor.apply(this, arguments);        
+        mpd.browser.PlaylistPanel.superclass.constructor.apply(this, arguments);
+        
+        this.on('rowdblclick', function(g, rowIdx, e) {
+			var row = this.getStore().getAt(rowIdx).data
+			mpd.cmd(['playid', row.id])
+		}, this)       
     }
 })
 Ext.reg('tab-playlist', mpd.browser.PlaylistPanel)
@@ -410,6 +525,14 @@ mpd.browser.SearchPanel = Ext.extend(mpd.browser.GridBase, {
         Ext.apply(this, config)
         mpd.browser.SearchPanel.superclass.constructor.apply(this, arguments);
         this.getTopToolbar().add( new Ext.app.SearchField({store: this.store}) )
+        this.on('rowdblclick', function(g, rowIdx, e) {
+			var row = this.getStore().getAt(rowIdx).data
+			if (row.pos) {
+				mpd.cmd( ['playid', row.id] )
+			} else {
+				mpd.cmd( ['add', row.file] )
+			}
+		}, this)       
     }
 })
 Ext.reg('tab-search', mpd.browser.SearchPanel)
@@ -433,7 +556,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
             ],
             listeners: {
 				'render': function() {
-					self.addTab('/', true)
+					self.addTab('', true)
 				},
                 'beforetabchange': function(pnl, new_tab, old_tab) {
                     if (new_tab.id == 'new_tab') {
@@ -461,7 +584,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
     },
     addTab: function (dir, disableClose) {
         var idx = this.items.length - 1
-        dir = dir || '/'
+        dir = dir || ''
         var t = this.insert(idx, {
 			layout: 'fit',
 			iconCls: 'icon-directory',
@@ -480,7 +603,7 @@ Ext.reg('browser-tab-panel', mpd.browser.TabPanel)
 mpd.browser.TreeLoader = Ext.extend(Ext.tree.TreeLoader, {
 	createNode: function(attr) {
         if (!attr.text) attr.text = attr.title
-        if (attr.songs) attr.text += ' <span style="color:#808080">(' + attr.songs + ')</span>'
+        if (attr.songs) attr.text += ' <span class="song-count">(' + attr.songs + ')</span>'
 		if (!attr.iconCls) attr.iconCls = 'icon-' + attr.type
         switch (attr.type) {
             case 'playlist':

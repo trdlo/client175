@@ -297,7 +297,10 @@ class _Mpd_Instance:
             return cached
 
         result = self.execute(command)
-        sorted_result = sorted(result, fieldSorter(sortKey), reverse=sortReverse)
+        useLower = False
+        if sortKey not in ('time', 'pos', 'songs'):
+            useLower = True
+        sorted_result = sorted(result, fieldSorter(sortKey, useLower), reverse=sortReverse)
         if command in self._cache_cmds:
             self._dbcache[key] = sorted_result
         return sorted_result
@@ -473,19 +476,62 @@ def hmsFromSeconds(sec):
     return _str
 
 
-def fieldSorter(field):
-    def sorter(x, y):
-        xt = x['type'] == 'directory'
-        yt = y['type'] == 'directory'
-        if xt and not yt:
-            return -1
-        if yt and not xt:
-            return 1
-        x = x.get(field, "").lower()
-        y = y.get(field, "").lower()
-        if x < y:
-            return -1
-        if x > y:
-            return 1
-        return 0
+def prettyDuration(sec):
+    sec = int(sec)
+    if not sec:
+        return ''
+
+    _str = ''
+    d = int(sec/86400)
+    sec -= d * 86400
+    if d:
+        _str = str(d) + ' days, '
+        
+    h = int(sec/3600)
+    sec -= h * 3600
+    if h:
+        _str += str(h) + ' hours, '
+        
+    if d or h:
+        m = int(round(sec/60))
+        _str += str(m) + ' minutes'
+    else:
+        m = int(sec/60)
+        sec -= m * 60
+        _str += '%s minutes, %s seconds' % (m, sec)
+        
+    return _str
+
+
+def fieldSorter(field, useLower):
+    if useLower:
+        def sorter(x, y):
+            xt = x['type'] == 'directory'
+            yt = y['type'] == 'directory'
+            if xt and not yt:
+                return -1
+            if yt and not xt:
+                return 1
+            x = x.get(field, "").lower()
+            y = y.get(field, "").lower()
+            if x < y:
+                return -1
+            if x > y:
+                return 1
+            return 0
+    else:
+        def sorter(x, y):
+            xt = x['type'] == 'directory'
+            yt = y['type'] == 'directory'
+            if xt and not yt:
+                return -1
+            if yt and not xt:
+                return 1
+            x = x.get(field, -1)
+            y = y.get(field, -1)
+            if x < y:
+                return -1
+            if x > y:
+                return 1
+            return 0
     return sorter
