@@ -79,6 +79,9 @@ div.add:hover {
 .icon-genre {
 	background: url("icons/fugue/tag.png") no-repeat !important;
 }
+.icon-group-unknown {
+	background: url("icons/fugue/folder-open.png") no-repeat !important;
+}
 .icon-group-album {
 	background: url("icons/fugue/folder-disc.png") no-repeat !important;
 }
@@ -157,6 +160,9 @@ div.remove:hover,
 	background: url("images/stop.png") no-repeat !important;
 	height: 16px !important;
 	width: 16px !important;
+}
+.icon-time {
+	background: url("icons/fugue/clock.png") no-repeat !important;
 }
 .icon-top {
 	background: url("icons/fugue/arrow-stop-090.png") no-repeat !important;
@@ -251,4 +257,15 @@ a.x-tree-node-anchor {
 	background-position: 0 3px !important;
 	margin-top: 2px !important;
 	height: 16px;
+}
+
+.song-count {
+	color: #808080;
+}
+div.db-count {
+	position: relative;
+}
+div.db-count > span {
+	position: absolute;
+	left: 90px;
 }

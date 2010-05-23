@@ -192,27 +192,56 @@ class Root:
     edit.exposed = True
 
 
-    def home(self):
-        result = [
+    def home(self, **kwargs):
+        dl = len(mpd.list('date'))
+        gl = len(mpd.list('genre'))
+        pl = len(mpd.listplaylists())
+        tm = mpd_proxy.prettyDuration(mpd.state['db_playtime'])
+        tmp = '<div class="db-count"><b>%s:</b><span>%s</span></div>'
+        result = {}
+        result['totalCount'] = 4
+        result['data'] = [
             {
-                'title': 'Music Folder  (%s songs)' % mpd.state['songs'],
+                'title': tmp % ('Songs', mpd.state['songs']),
                 'type': 'directory',
-                'directory': '/'
+                'directory': '/',
+                'id': 'directory:'
             },
             {
-                'title': 'Albums  (%s)' % mpd.state['albums'],
+                'title': tmp % ('Total Playtime', tm),
+                'type': 'time',
+                'directory': '/',
+                'id': 'time:'
+            },
+            {
+                'title': tmp % ('Albums', mpd.state['albums']),
                 'type': 'album',
-                'album': ''
+                'album': '',
+                'id': 'album:'
             },
             {
-                'title': 'Artists  (%s)' % mpd.state['artists'],
+                'title': tmp % ('Artists', mpd.state['artists']),
                 'type': 'artist',
-                'artist': ''
+                'artist': '',
+                'id': 'artist:'
             },
             {
-                'title': 'Playlists',
+                'title': tmp % ('Dates', dl),
+                'type': 'date',
+                'artist': '',
+                'id': 'date:'
+            },
+            {
+                'title': tmp % ('Genres', gl),
+                'type': 'genre',
+                'artist': '',
+                'id': 'genre:'
+            },
+            {
+                'title': tmp % ('Playlists', pl),
                 'type': 'playlist',
-                'playlist': ''
+                'playlist': '',
+                'id': 'playlist:'
             }
         ]
         return json.dumps(result)
@@ -312,6 +341,9 @@ class Root:
                 
 
     def query(self, cmd, start=0, limit=0, sort='', dir='ASC', **kwargs):
+        if not cmd:
+            return self.home()
+            
         node = kwargs.get("node", False)
         if node:
             m = int(kwargs.get('mincount', 0))
@@ -392,7 +424,7 @@ class Root:
                 result = [x for x in data if x['type'] == itemType]
             elif len(data) > 200:
                 result = []
-                iconCls = 'icon-group-'+itemType
+                iconCls = 'icon-group-unknown icon-group-'+itemType
                 cls = 'group-by-letter'
                 letters = sorted(set([x['title'][0].upper() for x in data]))
                 special = {
