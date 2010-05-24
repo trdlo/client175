@@ -193,8 +193,8 @@ class Root:
 
 
     def home(self, **kwargs):
-        dl = len(mpd.list('date'))
-        gl = len(mpd.list('genre'))
+        dl = len(mpd.execute('list date'))
+        gl = len(mpd.execute('list genre'))
         pl = len(mpd.listplaylists())
         tm = mpd_proxy.prettyDuration(mpd.state['db_playtime'])
         tmp = '<div class="db-count"><b>%s:</b><span>%s</span></div>'

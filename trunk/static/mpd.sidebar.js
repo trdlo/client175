@@ -239,7 +239,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
     setList: function (pstyle) {
         var self = this
         baseParams = {}
-        
+        custom_tpl = false
         switch (pstyle) {
             case 'titles':
                 cols = [
@@ -259,67 +259,76 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
             case 'albums':
                 cols = [
                     {
-                        header: "#",
-                        dataIndex: 'position',
-                        width: 0.1,
-                        tpl:
-                        '<tpl if="title">' +
-                            '<div id="{id}" class="remove {cls}">{pos}.</div>' +
-                        '</tpl><tpl if="!title">' +
-                            '<div class="x-toolbar {cls}" style="height:30px;">&nbsp;' +
-                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br>&nbsp;</tpl>' +
-                            '</div>' +
-                        '</tpl>'
-                    },
-                    {
                         header: 'Song',
                         dataIndex: 'title',
                         tpl:
                         '<tpl if="title">' +
-							'<div class="{cls}">{title}' +
+							'<dt style="width:10%"><em unselectable="on">'+
+                                '<div id="{id}" class="remove {cls}">{pos}.</div>' +
+                            '</em></dt>'+
+							'<dt style="width:90%"><em unselectable="on">'+
+                                '<div>{title}</div>'+
+                            '</em></dt>' +
 						'</tpl>' +
                         '<tpl if="!title">' +
-							'<div class="x-toolbar {cls}" style="height:30px;">' +
-                            '<b style="white-space:nowrap !important;">{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
-                            '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
-                            '<i>{artist}</i>' +
-                        '</tpl>' +
-                        '</div>'
+							'<dt style="width:100%"><em unselectable="on">'+
+							'<div class="x-toolbar {cls}" style="height:30px;padding-left:4px">' +
+                                '<b style="white-space:nowrap !important;">{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
+                                '<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
+                                '<i>{artist}</i>' +
+                            '</div>'+
+                            '</em></dt>' +
+                        '</tpl>'
                     }
                 ]
+                custom_tpl = new Ext.XTemplate(
+                    '<tpl for="rows">',
+                        '<dl>',
+                            '<tpl for="parent.columns">',
+                                '{[values.tpl.apply(parent)]}',
+                            '</tpl>',
+                            '<div class="x-clear"></div>',
+                        '</dl>',
+                    '</tpl>'
+                );
                 baseParams.albumheaders = true;
                 break;
             case 'albumcovers':
                 cols = [
                     {
-                        header: "#",
-                        dataIndex: 'pos',
-                        width: 0.1,
-                        tpl:
-                        '<tpl if="title">' +
-                            '<div id="{id}" class="remove {cls}">{pos}.</div>' +
-                        '</tpl><tpl if="!title">' +
-                            '<div class="x-toolbar {cls}" style="height:68px;">' +
-                            '</div>' +
-                        '</tpl>'
-                    },
-                    {
                         header: 'Song',
                         dataIndex: 'title',
                         tpl:
                         '<tpl if="title">' +
-							'<div class="{cls}">{title}</div>' +
+							'<dt style="width:10%"><em unselectable="on">'+
+                                '<div id="{id}" class="remove {cls}">{pos}.</div>' +
+                            '</em></dt>'+
+							'<dt style="width:90%"><em unselectable="on">'+
+                                '<div>{title}</div>'+
+                            '</em></dt>' +
 						'</tpl>' +
                         '<tpl if="!title">' +
+							'<dt style="width:100%"><em unselectable="on">'+
 							'<div class="x-toolbar {cls}" style="height:68px;">' +
 								'<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
 								'<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
 								'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
 								'<i>{artist}</i>' +
 							'</div>' +
+                            '</em></dt>' +
                         '</tpl>'
                     }
                 ]
+                custom_tpl = new Ext.XTemplate(
+                    '<tpl for="rows">',
+                        '<dl>',
+                            '<tpl for="parent.columns">',
+                                '{[values.tpl.apply(parent)]}',
+                            '</tpl>',
+                            '<div class="x-clear"></div>',
+                        '</dl>',
+                    '</tpl>'
+                );
                 pstyle = 'albums'
                 baseParams.albumheaders = true;
                 break;
@@ -348,9 +357,11 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
         var new_list = new Ext.ListView({
             store: self.store,
             multiSelect: true,
+            columnSort: false,
             cls: pstyle,
             columns: cols,
-            enableDragDrop: true
+            enableDragDrop: true,
+            tpl: custom_tpl
         })
 
         new_list.on('beforeclick', function(lstView, rowIdx, node, evt) {
