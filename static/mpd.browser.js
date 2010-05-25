@@ -19,8 +19,7 @@ mpd.dbFields = function() {
         {'name': 'songs', 'type': 'int'},
         {'name': 'time', 'type': 'int'},
         {'name': 'ptime'},
-        {'name': 'cls'},
-        {'name': 'any'}
+        {'name': 'cls'}
     ]
     return fields.concat(mpd.EXTRA_FIELDS)
 }
@@ -87,7 +86,10 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         
         this.filter = new Ext.app.FilterField({
             store: this.store,
-            width:140
+            width:140,
+            loadOptions: {
+				params: {start: 0, limit: mpd.PAGE_LIMIT}
+			}
         })
 		
 		var cols = [
@@ -268,7 +270,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 		sm.on('selectionchange', function() {
 			tagLoader.delay(300)
 		})
-    },
+    },	
     db_refresh: function(){
 		if (this.store.getCount() > 0) {
 			if (!this.store.lastOptions) {
@@ -312,27 +314,29 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 				var dir = ''
 			} else {
 				var itemType = 'directory'
-				var dir = obj
+				if (obj) {
+					var dir = obj
+					if (dir != "/" && dir.substr(0,1) == "/") dir = dir.slice(1)
+				} else {
+					dir = this.cwd
+				}
 			}
 		}
-        if (dir && dir != "/" && dir.substr(0,1) == "/") dir = dir.slice(1)
-        dir = (Ext.isDefined(dir)) ? dir : this.cwd
         var isSearch = false
         var isList = false
-        var g = this
-        var store = this.store
+        var cmd = ''
 
         // Load new location
 		switch (itemType) {
 			case 'home':
-				store.baseParams = {cmd: ''};
+				cmd = ''
 				break;
 			case 'search':
 				isSearch = true;
-				store.baseParams = {cmd: 'search any "' + dir + '"'};
+				cmd = 'search any "' + dir + '"'
 				break;
 			case 'directory':
-				store.baseParams = {cmd: 'lsinfo "' + dir + '"'};
+				cmd = 'lsinfo "' + dir + '"'
 				break;
 			case 'file':
 				if (obj.pos) {
@@ -344,21 +348,24 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 				break;
 			case 'playlist': 
 				if (dir > "") {
-					store.baseParams = {cmd: 'listplaylistinfo "' + dir + '"'};
+					cmd = 'listplaylistinfo "' + dir + '"'
 				} else {
-					store.baseParams = {cmd: 'listplaylists'};
+					cmd = 'listplaylists'
 					isList = true
 				}
 				break;
 			default:
 				if (dir > "") {
-					store.baseParams = {cmd: 'find ' + itemType +' "' + dir + '"'};
+					cmd = 'find ' + itemType +' "' + dir + '"'
 				} else {
-					store.baseParams = {cmd: 'list "' + itemType +'"'};
+					cmd = 'list "' + itemType +'"'
 					isList = true
 				}
 		}
 		
+        var g = this
+        var store = this.store
+        store.baseParams = {'cmd': cmd}
 		// Remove any sort
 		var sortField = (store.sortInfo) ? store.sortInfo.field : null
 		if (sortField) {

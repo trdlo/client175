@@ -34,7 +34,6 @@ COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
 cs = CoverSearch(COVERS_DIR)
 
 cherrypy.config.update( {
-    'tools.log_tracebacks.on': False,
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
@@ -253,6 +252,17 @@ class Root:
         stats = ["<tr><td><b>%s:</b></td><td>&nbsp;&nbsp;%s</td></tr>" % (k, v) for k,v in mpd.state.items()]
         return "<table>" + "".join(stats) + "</table>"
     index.exposed = True
+    
+    
+    def filter_results(self, data, filter):
+        filter = filter.lower()
+        d = []
+        for item in data:
+            for val in item.values():
+                if filter in str(val).lower():
+                    d.append(item)
+                    break
+        return d
 
 
     def lyrics(self, title, artist, **kwargs):
@@ -305,6 +315,10 @@ class Root:
 
     def playlistinfoext(self, **kwargs):
         data = mpd.playlistinfo()
+        filter = kwargs.get('filter')
+        if filter:
+            data = self.filter_results(data, filter)
+            
         if data and kwargs.get('albumheaders'):
             result = []
             g = data[0].get
@@ -354,6 +368,11 @@ class Root:
             data = mpd.execute_sorted(cmd, sort, dir=='DESC')
         else:
             data = mpd.execute(cmd)
+            
+        filter = kwargs.get('filter')
+        if filter:
+            data = self.filter_results(data, filter)
+            
         if limit:
             ln = len(data)
             end = start + int(limit)
