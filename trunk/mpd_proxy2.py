@@ -171,24 +171,20 @@ class _Mpd_Instance:
             elif 'directory' in keys:
                 item['type'] = 'directory'
                 item['title'] = item['directory'].split('/')[-1]
-                item['any'] = item['title']
                 item['id'] = "directory:" + item['directory']
             elif 'playlist' in keys:
                 item['type'] = 'playlist'
                 item['title'] = item['playlist']
-                item['any'] = item['title']
                 item['id'] = "playlist:" + item['playlist']
             else:
                 item['type'] = keys[0]
                 item['title'] = item[keys[0]]
-                item['any'] = item['title']
                 item['id'] = keys[0] + ":" + item[keys[0]]
                 
         return data
 
 
     def _extendFile(self, item):
-        item['any'] = ' '.join(item.values())
         p = item.get('pos')
         if p:
             item['pos'] = int(p) + 1
@@ -334,9 +330,9 @@ class _Mpd_Instance:
                 'title': item,
                 'type': what,
                 what: item,
-                'playtime': int(c['playtime']),
-                'songs': int(c['songs']),
-                'any': item
+                'time': c['playtime'],
+                'ptime': hmsFromSeconds(c['playtime']),
+                'songs': int(c['songs'])
             }
         return data
 
@@ -348,8 +344,7 @@ class _Mpd_Instance:
             data[index] = {
                 'title': item,
                 'type': 'playlist',
-                'playlist': item,
-                'any': item
+                'playlist': item
             }
         return data
 
