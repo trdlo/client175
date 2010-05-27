@@ -108,7 +108,8 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'calbum', header: "Album", dataIndex: 'album', renderer: mpd.browser.renderIfFile},
 			{id: 'cartist', header: "Artist", dataIndex: 'artist', renderer: mpd.browser.renderIfFile},
-			{id: 'ctime', header: "Time", width: 40, dataIndex: 'time',
+			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 60,	hidden: true},
+			{id: 'ctime', header: "Time", width: 60, dataIndex: 'time',
 				renderer: function(val, meta, rec){
 					return rec.data.ptime
 				}
@@ -121,12 +122,6 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				renderer: mpd.browser.renderIfFile,
 				hidden: true
 			})
-		})
-		cols.push({
-			header: 'Song Count',
-			dataIndex: 'songs',
-			width: 40,
-			hidden: true
 		})
 		
         Ext.apply(this, {
@@ -260,15 +255,19 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             self.selected = []
         }   
         
+		var ed = Ext.getCmp('tageditor')
+		var ip = Ext.getCmp('infopanel')
 		var tagLoader = new Ext.util.DelayedTask(function() {
 			var recs = sm.getSelections()
-			var ed = Ext.getCmp('tageditor')
-			var ip = Ext.getCmp('infopanel')
 			if (ed) ed.loadRecords(recs)
 			if (ip) ip.loadRecord(recs[0])
 		})
 		sm.on('selectionchange', function() {
 			tagLoader.delay(300)
+		})
+		this.store.on('load', function(s) {
+			var rec = s.getAt(0)
+			if (rec) ip.loadRecord(rec)
 		})
     },	
     db_refresh: function(){
@@ -375,6 +374,9 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 		}
 		if (isList) {
 			store.sortInfo = {'field': 'title', 'dir': 'ASC'}
+			this.showSimpleView()
+		} else {
+			this.showFullView()
 		}
 		
         var tb = g.getTopToolbar()
@@ -506,7 +508,35 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
             g.getView().holdPosition = true
             store.reload()
         }
-    }
+    },
+    hiddenCols: [],
+    showSimpleView: function() {
+		var cm = this.getColumnModel()
+		Ext.each(cm.config, function(c) {
+			switch (c.id) {
+				case 'cpos': break;
+				case 'cicon': break;
+				case 'ctitle': break;
+				case 'csongs': break;
+				case 'ctime': break;
+				default:
+					if (!c.hidden) {
+						var idx = cm.getIndexById(c.id)
+						cm.setHidden(idx, true)
+						this.hiddenCols.push(idx)
+					}
+			}
+		}, this)
+		cm.setHidden(cm.getIndexById('csongs'), false)
+	},
+	showFullView: function() {
+		var cm = this.getColumnModel()
+		cm.setHidden(cm.getIndexById('csongs'), true)
+		Ext.each(this.hiddenCols, function(colIdx) {
+			cm.setHidden(colIdx, false)
+		})
+		this.hiddenCols = []
+	}
 });
 Ext.reg('db-browser', mpd.browser.DbBrowserPanel)
 

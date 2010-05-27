@@ -1,5 +1,20 @@
 Ext.namespace('mpd')
 
+function smartToggle(animate){
+	if (this.collapsed) {
+		this.expand(animate);
+	} else {
+		var sib = this.nextSibling()
+		if (!sib && this.ownerCt.items.getCount() > 1) sib = this.ownerCt.get(0)
+		if (sib) {
+			this.collapse(animate)
+			sib.expand.call(sib, arguments);
+		}
+	}
+	return this;
+}
+
+
 mpd.init = function(){
 	Ext.QuickTips.init();
     var vp = new Ext.Viewport({
@@ -9,25 +24,31 @@ mpd.init = function(){
                 xtype: 'mpd-controls',
                 region: 'north'
             },
-            {
-                xtype: 'mpdtree',
-                iconCls: 'icon-directory',
-                region: 'west',
-                collapsible: true,
-                floatable: false,
-                split: true,
-                width: 200
+			{
+				xtype: 'mpdtree',
+				iconCls: 'icon-group-unknown',
+				region: 'west',
+				id: 'mpd-nav',
+				split: true,
+				collapsible: true,
+				minWidth: 200,
+				width: 300
             },
 			{
 				region: 'east',
+				xtype: 'panel',
 				layout: 'accordion',
 				id: 'mpd-sidebar',
 				split: true,
 				minWidth: 200,
-				width: 300,    
+				width: 300,
 				layoutConfig: {
-					activeOnTop: true,
-					hideCollapseTool: true
+					fill: true,
+					hideCollapseTool: true,
+					activeOnTop: true
+				},
+				defaults: {
+					toggleCollapse : smartToggle
 				},
 				items: [
 					{
