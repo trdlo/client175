@@ -83,7 +83,7 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
 	loadRecord: function(rec) {
 		if (!Ext.isObject(rec)) return null
 		if (!Ext.isObject(rec.data)) return null
-        if (this.ownerCt.layout.activeItem.id != this.id) {
+        if (this.collapsed) {
             this.delayedRecord = rec
         } else {
             this.delayedRecord = null
@@ -560,7 +560,7 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		})
 	},
     loadRecords: function(records) {
-        if (this.ownerCt.layout.activeItem.id != this.id) {
+        if (this.collapsed) {
             this.delayedRecords = records
             return null
         }

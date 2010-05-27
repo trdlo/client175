@@ -164,6 +164,9 @@ div.remove:hover,
 .icon-time {
 	background: url("icons/fugue/clock.png") no-repeat !important;
 }
+.icon-tree {
+	background: url("icons/fugue/node.png") no-repeat !important;
+}
 .icon-top {
 	background: url("icons/fugue/arrow-stop-090.png") no-repeat !important;
 }
