@@ -156,6 +156,9 @@ div.remove:hover,
 .icon-search {
 	background: url("icons/fugue/magnifier.png") no-repeat !important;
 }
+.icon-sidebar {
+	background: url("icons/fugue/layout-select-sidebar-right.png") no-repeat !important;
+}
 .icon-stop {
 	background: url("images/stop.png") no-repeat !important;
 	height: 16px !important;

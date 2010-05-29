@@ -394,7 +394,6 @@ class Root:
         while mpd.state['state'] == 'play' and n < 25:
             for k, v in mpd.state.items():
                 if k <> 'uptime' and kwargs.get(k, '') <> str(v):
-                    print '%s: %s <> %s' % (k, kwargs.get(k, ''), str(v))
                     return json.dumps(mpd.state)
             sleep(0.1)
             n += 1

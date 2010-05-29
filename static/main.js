@@ -1,4 +1,5 @@
 Ext.namespace('mpd')
+var SM = Ext.state.Manager
 
 function smartToggle(animate){
 	if (this.collapsed) {
@@ -16,6 +17,24 @@ function smartToggle(animate){
 
 
 mpd.init = function(){
+	var thirtyDays = new Date(new Date().getTime()+(1000*60*60*24*30))
+	SM.setProvider(new Ext.state.CookieProvider({expires: thirtyDays}))
+	
+	var sidebarItems = []
+	var playlistLocation = SM.get('playlistLocation', 'sidebar')
+	if (playlistLocation == 'sidebar') {
+		sidebarItems.push({
+			xtype: 'playlist_sidebar',
+			//playlistStyle: 'titles',
+			//playlistStyle: '3line',
+			//playlistStyle: 'albums',
+			playlistStyle: 'albumcovers',
+			iconCls: 'icon-playlist',
+		})
+	}
+	sidebarItems.push({xtype: 'info-panel'})
+	sidebarItems.push({xtype: 'tag-editor'})
+	
 	Ext.QuickTips.init();
     var vp = new Ext.Viewport({
         layout: 'border',
@@ -50,18 +69,7 @@ mpd.init = function(){
 				defaults: {
 					toggleCollapse : smartToggle
 				},
-				items: [
-					{
-						xtype: 'playlist_sidebar',
-						//playlistStyle: 'titles',
-						//playlistStyle: '3line',
-						//playlistStyle: 'albums',
-						playlistStyle: 'albumcovers',
-						iconCls: 'icon-playlist',
-					},
-					{xtype: 'info-panel'},
-					{xtype: 'tag-editor'}
-				]
+				items: sidebarItems
 			},
             {
                 layout: 'fit',
@@ -79,6 +87,10 @@ mpd.init = function(){
 		}
     })
     
+    if (playlistLocation != 'sidebar') {
+		var tb = Ext.getCmp('dbtabbrowser')
+		tb.addPlaylistTab()
+	}
     mpd.checkStatus.delay(100)
 }
 
@@ -91,10 +103,12 @@ Ext.onReady(function(){
 			// correspond to an editable ID3 tag.
 			mpd.TAG_TYPES.remove("Name")			
 			var fields = Ext.pluck(mpd.dbFields(), "name")
+			Ext.each(fields, function(v){ mpd.events.addEvents(v) })
 			Ext.each(mpd.TAG_TYPES, function(item) {
 				var tag = item.toLowerCase()
 				if (fields.indexOf(tag) == -1) {
 					mpd.EXTRA_FIELDS.push({'name': tag, 'header': item})
+					mpd.events.addEvents(tag)
 				}
 			})
 			mpd.init()
