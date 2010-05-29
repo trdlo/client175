@@ -22,10 +22,12 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
                     default: dt.delay(200); break;
                 }
             });
-            this.store.on('load', function() {
-                if (!this.store.baseParams.filter) {
-                    this.el.dom.value = ''
-                }
+            this.onLoad = function() {
+                if (!this.store.baseParams.filter) el.value = ''
+            }
+            this.store.on('load', this.onLoad, this)
+            this.on('beforedestroy', function() {
+                this.store.un('load', this.onLoad, this)
             }, this)
         }, this)
     },

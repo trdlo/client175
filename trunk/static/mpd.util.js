@@ -177,9 +177,10 @@ mpd.util.createPlaylistToolbar = function () {
 					afterrender: function (self) {
 						var n = Ext.value(mpd.status.playlistname, 'Untitled')
 						self.setText(n)
-						appEvents.subscribe('playlistnamechanged', function(){
-							self.setText(mpd.status.playlistname)
-						})
+						mpd.events.on('playlistname', self.setText, self)
+					},
+					beforedestroy: function (self) {
+						mpd.events.un('playlistname', self.setText, self)
 					}
 				}
 			},
@@ -264,8 +265,7 @@ mpd.util.playlistDialog = new Ext.Window({
 				listeners: {
 					'render': function(self) {
 						var s = self.getStore()
-						var fn = s.load.createDelegate(s)
-						appEvents.subscribe('playlistschanged', fn)
+						mpd.events.on('playlists', s.load, s)
 					},
 					'selectionchange': function(lst, nodes) {
 						if (nodes.length > 0) {

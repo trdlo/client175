@@ -18,10 +18,10 @@ mpd.Controls = Ext.extend(Ext.Container, {
                 dragend: function(slider, e) {
                     val = Math.floor( ( slider.getValue()/100 ) * mpd.status.time )
                     if (val != mpd.status.elapsed) mpd.seek(val)
-                    appEvents.resume('elapsedchanged')
+                    mpd.events.resume('elapsed')
                 },
                 dragstart: function(slider, e) {
-                    appEvents.suspend('elapsedchanged')
+                    mpd.events.suspend('elapsed')
                 }
             }
         })
@@ -263,7 +263,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
             })
         })
         
-        appEvents.subscribe('elapsedchanged', function(){
+        mpd.events.on('elapsed', function(){
             var percent = (mpd.status.elapsed / mpd.status.time)
             var hmsE = hmsFromSec(mpd.status.elapsed)
             var hmsT = hmsFromSec(mpd.status.time)
@@ -271,7 +271,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
             if (!sliderTime.dragging) sliderTime.setValue(percent * 100)
         })
         
-        appEvents.subscribe('statechanged', function(){
+        mpd.events.on('state', function(){
             if (mpd.status.state == 'stop') {
                 Ext.getCmp('btnStopPause').hide()
                 Ext.getCmp('btnPlay').show()
@@ -283,29 +283,29 @@ mpd.Controls = Ext.extend(Ext.Container, {
             statusControls.doLayout(false, true)
         })
         
-        appEvents.subscribe('titlechanged', function(){
+        mpd.events.on('title', function(){
             Ext.getDom('txtTitle').innerHTML = mpd.status.title
         })
         
-        appEvents.subscribe('artistchanged', function(){
+        mpd.events.on('artist', function(){
             Ext.getDom('txtArtist').innerHTML = mpd.status.artist
         })
         
-        appEvents.subscribe('albumchanged', function(){
+        mpd.events.on('album', function(){
             Ext.getDom('txtAlbum').innerHTML = mpd.status.album
         })
 
-        appEvents.subscribe('randomchanged', function () {
+        mpd.events.on('random', function () {
             var val = (mpd.status.random == '1')
             btnRandom.toggle(val)
         })
 
-        appEvents.subscribe('repeatchanged', function () {
+        mpd.events.on('repeat', function () {
             var val = (mpd.status.repeat == '1')
             btnRepeat.toggle(val)
         })
         
-        appEvents.subscribe('volumechanged', function(){
+        mpd.events.on('volume', function(){
             Ext.getCmp('sldrVolume').setValue(mpd.status.volume)
         })
         

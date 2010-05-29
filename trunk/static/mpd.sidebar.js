@@ -136,9 +136,11 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
 			url: '../playlistinfoext',
             fields: mpd.dbFields()
         })
-        appEvents.subscribe('playlistchanged', function(){
-            self.store.load()
-        })
+        
+        mpd.events.on('playlist', this.store.load, this.store)
+        this.store.on('beforedestroy', function(){
+            mpd.events.un('playlist', this.store.load, this.store)
+        }, this)
 
         var pstyle = Ext.value(config.playlistStyle, '3line')
         this.setList(pstyle)
@@ -182,6 +184,20 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                     text: 'Album Covers',
                     id: 'albumcovers',
                     checked: (pstyle=='albumcovers')
+                }, '-',
+                {
+                    text: 'Show in Tab',
+                    id: 'plyalist-display-tab',
+                    handler: function(menuItem, event){
+                        var tb = Ext.getCmp('dbtabbrowser')
+                        if (tb) {
+                            tb.addPlaylistTab()
+                            var n = self.nextSibling()
+                            self.ownerCt.remove(self, true)
+                            if (n) n.expand.call(n)
+                            Ext.state.Manager.set('playlistLocation', 'tab')
+                        }
+                    }
                 }
             ]
         })
@@ -225,6 +241,9 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
             listeners: {
                 'beforecollapse': function () {
                     Ext.getCmp('dbtabbrowser').unhideTabStripItem('playlistTab')
+                },
+                'beforedestroy': function () {
+                    menu.destroy()
                 },
                 'beforeexpand': function () {
                     Ext.getCmp('dbtabbrowser').hideTabStripItem('playlistTab')

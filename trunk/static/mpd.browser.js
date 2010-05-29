@@ -79,11 +79,8 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                   mpd.dbFields()
                 )  
             })
-        } 
-        
-        appEvents.subscribe('playlistchanged', this.db_refresh.createDelegate(this))
-        appEvents.subscribe('db_updatechanged', this.db_refresh.createDelegate(this))
-        
+        }
+			
         this.filter = new Ext.app.FilterField({
             store: this.store,
             width:140,
@@ -243,6 +240,13 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, config)
         mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
 
+        mpd.events.on('playlist', this.db_refresh, this)
+        mpd.events.on('db_update', this.db_refresh, this)
+        this.on('beforedestroy', function(){
+			mpd.events.un('playlist', this.db_refresh, this)
+			mpd.events.un('db_update', this.db_refresh, this)
+		})
+		
         var sm = self.getSelectionModel()
         this.selected = []
         this.onHover = function(evt, el) {
@@ -544,15 +548,43 @@ Ext.reg('db-browser', mpd.browser.DbBrowserPanel)
 mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridBase, {
     constructor: function(config) {
         config.tbar = mpd.util.createPlaylistToolbar()
-        config.cmd = 'playlistinfo'
+        config.tbar.addSeparator()
+        config.tbar.addButton({
+			iconCls: 'icon-sidebar',
+			tooltip: 'Show in Sidebar',
+			handler: function(btn) {
+				var sb = Ext.getCmp('mpd-sidebar')
+				var p = sb.add({
+					xtype: 'playlist_sidebar',
+					playlistStyle: 'albumcovers',
+					iconCls: 'icon-playlist'
+				})
+				p.store.load()
+				sb.doLayout()
+				sb.layout.setActiveItem('playlistsidebar')
+				Ext.state.Manager.set('playlistLocation', 'sidebar')
+				this.ownerCt.ownerCt.remove(this.ownerCt, true)
+			},
+			scope: this
+		})
+        config.cwd = '<<<playlist>>>'
+		config.cmd = 'playlistinfo'
         Ext.apply(this, config)
         mpd.browser.PlaylistPanel.superclass.constructor.apply(this, arguments);
         
         this.on('rowdblclick', function(g, rowIdx, e) {
 			var row = this.getStore().getAt(rowIdx).data
 			mpd.cmd(['playid', row.id])
-		}, this)       
-    }
+		}, this) 
+		
+    },	
+    db_refresh: function(){
+		if (!this.store.lastOptions) {
+			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
+		} else {
+			this.store.reload()
+		}
+	}
 })
 Ext.reg('tab-playlist', mpd.browser.PlaylistPanel)
 
@@ -619,18 +651,31 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         if (atab) return atab.get(0)
         return null
     },
+    addPlaylistTab: function () {
+        var idx = this.items.length - 1
+        var t = this.insert(idx, {
+			layout: 'fit',
+			iconCls: 'icon-playlist',
+			title: 'Playlist',
+			closable: false,
+			items: {'xtype': 'tab-playlist'}
+        })
+        t.get(0).getStore().load({params:{start:0, limit:200}})
+        this.setActiveTab(t)
+        return t
+    },
     addTab: function (dir, disableClose) {
         var idx = this.items.length - 1
-        dir = dir || ''
+        var dir = dir || ''
         var t = this.insert(idx, {
 			layout: 'fit',
 			iconCls: 'icon-directory',
 			title: 'Home',
 			closable: !disableClose,
-			items: {xtype: 'db-browser'}
+			items: {'xtype': 'db-browser'}
         })
         this.setActiveTab(t)
-        t.get(0).goTo(dir)
+		t.get(0).goTo(dir)
         return t
     }
 })
@@ -763,12 +808,12 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     Ext.getCmp('dbtabbrowser').getActiveBrowser().goTo(attr)
                 },
                 'afterrender': function (tree) {
-                    appEvents.subscribe('db_updatechanged', function(){
+                    mpd.events.on('db_update', function(){
                         tree.root.eachChild(function(node){
                             if (node.isLoaded()) node.reload()
                         })
                     })
-                    appEvents.subscribe('playlistschanged', function(){
+                    mpd.events.on('playlists', function(){
                         var node = tree.root.findChild('id', 'playlist:')
                         if (node.isLoaded()) node.reload()
                     })
