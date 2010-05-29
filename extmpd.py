@@ -390,14 +390,6 @@ class Root:
 
     def status(self, **kwargs):
         mpd.sync()
-        n = 0
-        while mpd.state['state'] == 'play' and n < 25:
-            for k, v in mpd.state.items():
-                if k <> 'uptime' and kwargs.get(k, '') <> str(v):
-                    return json.dumps(mpd.state)
-            sleep(0.1)
-            n += 1
-            mpd.sync()
         return json.dumps(mpd.state)
     status.exposed = True
 
