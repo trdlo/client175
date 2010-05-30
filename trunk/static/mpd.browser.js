@@ -83,10 +83,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			
         this.filter = new Ext.app.FilterField({
             store: this.store,
-            width:140,
-            loadOptions: {
-				params: {start: 0, limit: mpd.PAGE_LIMIT}
-			}
+            width:140
         })
 		
 		var cols = [

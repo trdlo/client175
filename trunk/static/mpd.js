@@ -33,36 +33,33 @@ mpd.events.addEvents("repeat", "playlists", "consume", "random", "uptime",
 
 mpd.timer_delay = 1500
 mpd.status = {}
-mpd._changed = []
 mpd._updateValue = function(key, val) {
 	if (val != Ext.value(mpd.status[key], null)) {
 		mpd.status[key] = val
-		mpd._changed.push(key)
+		mpd.events.fireEvent.defer(10, mpd.events, [key, val])
 	}
 }
 mpd.checkStatus = new Ext.util.DelayedTask(function() {
     Ext.Ajax.request({
         url: '/status',
         success: function (req, opt) {
-            s = Ext.util.JSON.decode(req.responseText)
-            var changed = []
-            if (!Ext.isObject(s)) return false
-			mpd._changed.length = 0
-            Ext.iterate(s, mpd._updateValue)
-            Ext.each(mpd._changed, function(k) {
-				mpd.events.fireEvent(k, mpd.status[k])
-			})
-            
-            if (mpd.status.state == 'play') {
-				var t = (mpd.timer_delay < 200) ? mpd.timer_delay : 200
-				mpd.timer_delay = 200
-			} else {
-				var t = mpd.timer_delay || 200
-				t = (t > 3000) ? 3000 : t
-				mpd.timer_delay = t * 2
+			try {
+				s = Ext.util.JSON.decode(req.responseText)
+				Ext.iterate(s, mpd._updateValue)
+				
+				if (mpd.status.state == 'play') {
+					var t = (mpd.timer_delay < 200) ? mpd.timer_delay : 200
+					mpd.timer_delay = 200
+				} else {
+					var t = mpd.timer_delay || 200
+					t = (t > 3000) ? 3000 : t
+					mpd.timer_delay = t * 2
+				}
+				mpd.checkStatus.delay(t)
+			} catch (e) {
+				console.log(e)
+				mpd.checkStatus.delay(3000)
 			}
-			
-            mpd.checkStatus.delay(t)
         },
         failure: function (req, opt) {
             mpd.checkStatus.delay(3000)
