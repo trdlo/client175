@@ -23,13 +23,15 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
                 }
             });
             this.onLoad = function() {
-                if (!this.store.baseParams.filter) el.value = ''
+                var l = this.store.lastOptions
+                if (!l || !l.params || !l.params.filter) el.value = ''
             }
             this.store.on('load', this.onLoad, this)
             this.on('beforedestroy', function() {
                 this.store.un('load', this.onLoad, this)
             }, this)
         }, this)
+        console.log(this.loadOptions)
     },
 
     validationEvent:false,
@@ -53,12 +55,9 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
         b.goTo({'type': 'search', 'search': val})
     },
     onTrigger1Click : function(){
-        if(this.hasSearch){
-            this.el.dom.value = '';
-            this.clearSearch(this.store);
-            this.triggers[0].hide();
-            this.hasSearch = false;
-        }
+        this.setRawValue('');
+        this.clearSearch(this.store);
+        this.triggers[0].hide();
     },
     onTrigger2Click : function(){
         var v = this.getRawValue().toLowerCase();
@@ -67,19 +66,26 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
             return;
         }
         this.doSearch(this.store, v);
-        this.hasSearch = true;
         this.triggers[0].show();
     }
 });
 
 Ext.app.FilterField = Ext.extend(Ext.app.SearchField, {
-    loadOptions: null,
     clearSearch: function(store){
-		store.baseParams.filter = ''
-		store.load(this.loadOptions)
+		store.load({
+            params: {
+                start: 0, 
+                limit: mpd.PAGE_LIMIT
+            }
+        })
 	},
     doSearch: function(store, val){
-		store.baseParams.filter = val
-		store.load(this.loadOptions)
+		store.load({
+            params: {
+                filter: val,
+                start: 0, 
+                limit: mpd.PAGE_LIMIT
+            }
+        })
 	}    
 });
