@@ -30,26 +30,6 @@ mpd.browser.renderIcon = function(val, meta, rec, row, col, store) {
 }
 
 
-mpd.browser.renderCountIfType = function(field) {
-	return function(val, meta, rec, row, col, store) {
-		switch (rec.data.type) {
-			case 'file': return val; break;
-			case field: 
-				var c = rec.data.songs
-				return (c) ? '<span class="song-count">' + c + ' songs</span>' : '';
-				break;
-			default: return ''
-		}
-	}
-}
-
-
-mpd.browser.renderIfFile = function(val, meta, rec, row, col, store) {
-    if (rec.data.type == 'file') return val
-    return ''
-}
-
-
 Ext.override(Ext.grid.GridView, {
     holdPosition: false,
     onLoad : function(){
@@ -100,8 +80,8 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'ctrack', header: 'Track', dataIndex: 'track', width: 40, align: 'right', hidden: true},
 			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: mpd.browser.renderIcon},
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
-			{id: 'calbum', header: "Album", dataIndex: 'album', renderer: mpd.browser.renderIfFile},
-			{id: 'cartist', header: "Artist", dataIndex: 'artist', renderer: mpd.browser.renderIfFile},
+			{id: 'calbum', header: "Album", dataIndex: 'album'},
+			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
 			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 60,	hidden: true},
 			{id: 'ctime', header: "Time", width: 60, dataIndex: 'time',
 				renderer: function(val, meta, rec){
@@ -113,7 +93,6 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			cols.push({
 				header: item.header,
 				dataIndex: item.name,
-				renderer: mpd.browser.renderIfFile,
 				hidden: true
 			})
 		})
@@ -130,7 +109,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             }),
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
-            autoExpandMax: 300,
+            autoExpandMax: 400,
             closable: true,
             hideParent: true,
             keys: {
@@ -279,26 +258,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				this.store.reload()
 			}
 		}
-	}
-})
-
-
-mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
-    constructor: function(config) {
-        Ext.apply(this, config)
-        mpd.browser.DbBrowserPanel.superclass.constructor.apply(this, arguments);
-
-        var self = this
-        this.getTopToolbar().add({
-            iconCls: 'icon-home',
-            handler: function(){ self.goTo('')}
-        })
-        this.on('rowdblclick', function(g, rowIdx, e) {
-			var row = self.getStore().getAt(rowIdx).data
-			self.goTo(row)
-		})
-    },
-
+	},
     goTo: function(obj) {
 		if (Ext.isObject(obj)) {
 			var itemType = obj.type
@@ -365,6 +325,7 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 		
         var g = this
         var store = this.store
+        store.removeAll()
         store.baseParams = {'cmd': cmd}
 		// Remove any sort
 		var sortField = (store.sortInfo) ? store.sortInfo.field : null
@@ -477,12 +438,12 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 					handler: function(){mpd.cmd( ['add', itemType, dir])}
 				})
 			} else if (itemType != 'home') {
-				t = titleCase(itemType) + 's'
+				t = dir
 				var base = {'type': itemType}
 				base[itemType] = ''
 				tb.insert(x++, '-')
 				tb.insertButton(x++, {
-					text: t,
+					text: titleCase(itemType) + 's',
 					iconCls: 'icon-group-unknown icon-group-'+itemType,
 					id: itemType+":",
 					handler: function(){ g.goTo(base) }
@@ -538,6 +499,24 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
 		})
 		this.hiddenCols = []
 	}
+})
+
+
+mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
+    constructor: function(config) {
+        Ext.apply(this, config)
+        mpd.browser.DbBrowserPanel.superclass.constructor.apply(this, arguments);
+
+        var self = this
+        this.getTopToolbar().add({
+            iconCls: 'icon-home',
+            handler: function(){ self.goTo('')}
+        })
+        this.on('rowdblclick', function(g, rowIdx, e) {
+			var row = self.getStore().getAt(rowIdx).data
+			self.goTo(row)
+		})
+    }
 });
 Ext.reg('db-browser', mpd.browser.DbBrowserPanel)
 
@@ -626,7 +605,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
 				},
                 'beforetabchange': function(pnl, new_tab, old_tab) {
                     if (new_tab.id == 'new_tab') {
-                        self.addTab()
+                        self.addTab('')
                         return false
                     }
                 }
@@ -644,9 +623,23 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         return atab
 	},
     getActiveBrowser: function () {
+		/** Returns the active DbBrowser tab.
+		 *  First try active tab,
+		 *  then try first tab,
+		 *  finally, just add a new tab and return that.
+		 **/
         var atab = this._getActiveTab()
-        if (atab) return atab.get(0)
-        return null
+        if (atab && atab.get(0).cwd != '<<<playlist>>>') {
+			return atab.get(0)
+        } else {
+			atab = this.get(0)
+			if (atab && atab.get(0).cwd != '<<<playlist>>>') {
+				return atab.get(0)
+			} else {
+				atab = self.addTab()
+				return atab.get(0)
+			}
+		}
     },
     addPlaylistTab: function () {
         var idx = this.items.length - 1
@@ -663,7 +656,6 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
     },
     addTab: function (dir, disableClose) {
         var idx = this.items.length - 1
-        var dir = dir || ''
         var t = this.insert(idx, {
 			layout: 'fit',
 			iconCls: 'icon-directory',
@@ -672,7 +664,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
 			items: {'xtype': 'db-browser'}
         })
         this.setActiveTab(t)
-		t.get(0).goTo(dir)
+		if (Ext.isDefined(dir)) t.get(0).goTo(dir)
         return t
     }
 })
@@ -801,8 +793,11 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
             rootVisible: false,
             listeners: {
                 'click': function(node) {
-					attr = node.attributes
-                    Ext.getCmp('dbtabbrowser').getActiveBrowser().goTo(attr)
+					var attr = node.attributes
+					var tb = Ext.getCmp('dbtabbrowser')
+					if (attr.type && tb) {
+						tb.getActiveBrowser().goTo(attr)
+					}
                 },
                 'afterrender': function (tree) {
                     mpd.events.on('db_update', function(){

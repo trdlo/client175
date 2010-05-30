@@ -257,11 +257,13 @@ class Root:
     def filter_results(self, data, filter):
         filter = filter.lower()
         d = []
+        skip = ('type', 'time', 'ptime', 'songs')
         for item in data:
-            for val in item.values():
-                if filter in str(val).lower():
-                    d.append(item)
-                    break
+            for key, val in item.items():
+                if key not in skip:
+                    if filter in str(val).lower():
+                        d.append(item)
+                        break
         return d
 
 

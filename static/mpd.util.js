@@ -122,6 +122,16 @@ mpd.util.context.items = {
             mpd.cmd(['moveend', ids.join(".")])
             mpd.util.context.lastCommand = self.id
         }
+    },
+    'new_tab': {
+        text: 'Open in New Tab',
+        id: 'mpd-context-new-tab',
+        iconCls: 'icon-newtab',
+        handler: function(self, event) {
+            var dir = mpd.util.context.itemData[0]
+            var tb = Ext.getCmp('dbtabbrowser')
+            if (tb) tb.addTab(dir)
+        }
     }
 }
 
@@ -146,12 +156,20 @@ mpd.util.context.show = function(itemData, event) {
             case 'playlist':
                 add(c.rename);
                 add(c.rm);
+                muc.menu.addSeparator();
+                add(c.new_tab);
                 break;
             case 'directory':
                 add(c.update);
+                muc.menu.addSeparator();
+                add(c.new_tab);
                 break;
             case 'file':
                 add(c.update);
+                break;
+            default:
+                muc.menu.addSeparator();
+                add(c.new_tab);
                 break;
         }
     }

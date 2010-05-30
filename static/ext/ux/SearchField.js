@@ -31,7 +31,6 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
                 this.store.un('load', this.onLoad, this)
             }, this)
         }, this)
-        console.log(this.loadOptions)
     },
 
     validationEvent:false,
