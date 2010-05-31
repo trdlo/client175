@@ -453,7 +453,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 					text: dir,
 					iconCls: 'icon-'+itemType,
 					id: this.cwd,
-					handler: function(){ g.goTo(this.id) }
+					handler: function(){ g.goTo(obj) }
 				})
 				tb.add("->")
 				tb.addButton({
@@ -471,33 +471,44 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             store.reload()
         }
     },
-    hiddenCols: [],
-    showSimpleView: function() {
-		var cm = this.getColumnModel()
-		Ext.each(cm.config, function(c) {
-			switch (c.id) {
-				case 'cpos': break;
-				case 'cicon': break;
-				case 'ctitle': break;
-				case 'csongs': break;
-				case 'ctime': break;
-				default:
-					if (!c.hidden) {
-						var idx = cm.getIndexById(c.id)
-						cm.setHidden(idx, true)
-						this.hiddenCols.push(idx)
+    _currentView: 'full',
+    _fullColModel: null,
+    _simpleColModel: new Ext.grid.ColumnModel({
+		columns: [
+			{id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
+				renderer: function(val, meta, rec){
+					if (self.cwd == '') return ''
+					if (val) {
+						return '<div class="remove">' + val + '.</div>'
+					} else {
+						return '<div class="add">'
 					}
+				}
+			},
+			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: mpd.browser.renderIcon},
+			{id: 'ctitle', header: "Title", dataIndex: 'title'},
+			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 80},
+			{id: 'ctime', header: "Time", width: 80, dataIndex: 'time',
+				renderer: function(val, meta, rec){
+					return rec.data.ptime
+				}
 			}
-		}, this)
-		cm.setHidden(cm.getIndexById('csongs'), false)
+		],
+		defaults: {
+			width: 150,
+			sortable: true
+		}
+    }),
+    showSimpleView: function() {
+		if (this._currentView == 'simple') return null
+		this._fullColModel = this.getColumnModel()
+		this.reconfigure(this.store, this._simpleColModel)
+		this._currentView = 'simple'
 	},
 	showFullView: function() {
-		var cm = this.getColumnModel()
-		cm.setHidden(cm.getIndexById('csongs'), true)
-		Ext.each(this.hiddenCols, function(colIdx) {
-			cm.setHidden(colIdx, false)
-		})
-		this.hiddenCols = []
+		if (this._currentView == 'full') return null
+		this.reconfigure(this.store, this._fullColModel)
+		this._currentView = 'full'
 	}
 })
 
@@ -618,7 +629,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         var atab = this.getActiveTab()
         if (!atab) {
             atab = this.get(this.items.getCount()-1)
-            self.setActiveTab(atab)
+            this.setActiveTab(atab)
         }
         return atab
 	},
@@ -634,6 +645,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         } else {
 			atab = this.get(0)
 			if (atab && atab.get(0).cwd != '<<<playlist>>>') {
+				this.setActiveTab(atab)
 				return atab.get(0)
 			} else {
 				atab = self.addTab()
