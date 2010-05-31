@@ -32,8 +32,8 @@ mpd.init = function(){
 			iconCls: 'icon-playlist',
 		})
 	}
-	sidebarItems.push({xtype: 'info-panel'})
-	sidebarItems.push({xtype: 'tag-editor'})
+	sidebarItems.push( new mpd.sidebar.InfoPanel() )
+	sidebarItems.push( new mpd.sidebar.TagEditor() )
 	
 	Ext.QuickTips.init();
     var vp = new Ext.Viewport({

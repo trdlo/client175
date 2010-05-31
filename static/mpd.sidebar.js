@@ -55,8 +55,8 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
 			'</center>'
 			),
             listeners: {
-                activate: function(p) {
-                    if (p.delayedRecord) p.loadRecord(p.delayedRecord)
+                activate: function() {
+                    if (this.delayedRecord) this.loadRecord(this.delayedRecord)
                 }
             }
 		})
@@ -83,7 +83,7 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
 	loadRecord: function(rec) {
 		if (!Ext.isObject(rec)) return null
 		if (!Ext.isObject(rec.data)) return null
-        if (this.collapsed) {
+        if (this.ownerCt.layout.activeItem != this) {
             this.delayedRecord = rec
         } else {
             this.delayedRecord = null
@@ -541,8 +541,8 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 				'afterrender': function () {
 					this.loadMask = new Ext.LoadMask(this.bwrap, {msg:"Saving Changes..."});
 				},
-				'activate': function (p) {
-					if (p.delayedRecords) p.loadRecords(p.delayedRecords)
+				'activate': function () {
+					if (this.delayedRecords) this.loadRecords(this.delayedRecords)
 				}
 			}
 		})
@@ -579,7 +579,7 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		})
 	},
     loadRecords: function(records) {
-        if (this.collapsed) {
+        if (this.ownerCt.layout.activeItem != this) {
             this.delayedRecords = records
             return null
         }
