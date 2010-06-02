@@ -28,6 +28,9 @@ mpd.dbFields = function() {
 mpd.browser.renderIcon = function(val, meta, rec, row, col, store) {
     return '<div class="icon icon-'+val+'"/>'
 }
+mpd.browser.renderIconWide = function(val, meta, rec, row, col, store) {
+    return '<div class="icon icon-'+val+'" style="margin-left:24px !important"/>'
+}
 
 
 Ext.override(Ext.grid.GridView, {
@@ -78,7 +81,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				}
 			},
 			{id: 'ctrack', header: 'Track', dataIndex: 'track', width: 40, align: 'right', hidden: true},
-			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: mpd.browser.renderIcon},
+			{id: 'cicon', header: "Icon", width: 22, dataIndex: 'type', renderer: mpd.browser.renderIcon},
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'calbum', header: "Album", dataIndex: 'album'},
 			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
@@ -96,17 +99,18 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				hidden: true
 			})
 		})
+		this._fullColModel = new Ext.grid.ColumnModel({
+			columns: cols,
+			defaults: {
+				width: 150,
+				sortable: true
+			}
+		})
 		
         Ext.apply(this, {
             store: this.store,
             region: 'center',
-            cm: new Ext.grid.ColumnModel({
-                columns: cols,
-                defaults: {
-                    width: 150,
-                    sortable: true
-                }
-            }),
+            cm: this._fullColModel,
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
             autoExpandMax: 400,
@@ -216,6 +220,9 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, config)
         mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
 
+        mpd.events.on('playlists', function(){
+			if (this.cwd == 'playlist:') this.db_refresh()
+		}, this)
         mpd.events.on('playlist', this.db_refresh, this)
         mpd.events.on('db_update', this.db_refresh, this)
         this.on('beforedestroy', function(){
@@ -335,11 +342,15 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			vw.mainHd.select('td').removeClass(['sort-asc', 'sort-desc'])
 			store.sortInfo = {'field': '', 'dir': ''}
 		}
-		if (isList) {
-			store.sortInfo = {'field': 'title', 'dir': 'ASC'}
-			this.showSimpleView()
+		if (cmd == '') {
+			this.showHomeView()
 		} else {
-			this.showFullView()
+			if (isList) {
+				store.sortInfo = {'field': 'title', 'dir': 'ASC'}
+				this.showSimpleView()
+			} else {
+				this.showFullView()
+			}
 		}
 		
         var tb = g.getTopToolbar()
@@ -474,6 +485,13 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
     },
     _currentView: 'full',
     _fullColModel: null,
+    _homeColModel: new Ext.grid.ColumnModel({
+		columns: [
+			{id: 'cicon', header: "Icon", align: 'right',  width: 45, 
+				dataIndex: 'type', renderer: mpd.browser.renderIconWide},
+			{id: 'ctitle', header: "Statistics", dataIndex: 'title'}
+		]
+    }),
     _simpleColModel: new Ext.grid.ColumnModel({
 		columns: [
 			{id: 'cpos', header: "#", width: 23, dataIndex: 'pos', align: 'left',
@@ -486,7 +504,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 					}
 				}
 			},
-			{id: 'cicon', header: "Icon", width: 24, dataIndex: 'type', renderer: mpd.browser.renderIcon},
+			{id: 'cicon', header: "Icon", width: 22, dataIndex: 'type', renderer: mpd.browser.renderIcon},
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 80},
 			{id: 'ctime', header: "Time", width: 80, dataIndex: 'time',
@@ -500,16 +518,20 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			sortable: true
 		}
     }),
-    showSimpleView: function() {
-		if (this._currentView == 'simple') return null
-		this._fullColModel = this.getColumnModel()
-		this.reconfigure(this.store, this._simpleColModel)
-		this._currentView = 'simple'
-	},
 	showFullView: function() {
 		if (this._currentView == 'full') return null
 		this.reconfigure(this.store, this._fullColModel)
 		this._currentView = 'full'
+	},
+	showHomeView: function() {
+		if (this._currentView == 'home') return null
+		this.reconfigure(this.store, this._homeColModel)
+		this._currentView = 'home'
+	},
+    showSimpleView: function() {
+		if (this._currentView == 'simple') return null
+		this.reconfigure(this.store, this._simpleColModel)
+		this._currentView = 'simple'
 	}
 })
 

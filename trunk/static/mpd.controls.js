@@ -10,7 +10,6 @@ mpd.Controls = Ext.extend(Ext.Container, {
             y: 33,
             anchor: '99%',
             hidden: true,
-            hideMode: 'offsets',
             minValue: 0,
             maxValue: 100,
             decimalPrecision: 2,
@@ -32,7 +31,6 @@ mpd.Controls = Ext.extend(Ext.Container, {
             y: 34,
             anchor: '99%',
             height: 18,
-            hideMode: 'offsets',
             text: '0:00 / 0:00'                         
         })
 
@@ -250,16 +248,16 @@ mpd.Controls = Ext.extend(Ext.Container, {
             pbarTime.el.hover(function(){
                 pbarTime.hide()
                 sliderTime.show()
-                self.doLayout()
+                pbarTime.ownerCt.doLayout()
             })
         })
         
         sliderTime.on("afterrender", function(){
             sliderTime.el.hover(Ext.emptyFn, function(){
                 if (sliderTime.dragging) return false
-                pbarTime.show()
                 sliderTime.hide()
-                self.doLayout()
+                pbarTime.show()
+                sliderTime.ownerCt.doLayout()
             })
         })
         
