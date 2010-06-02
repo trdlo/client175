@@ -249,6 +249,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			var rec = s.getAt(0)
 			if (rec) ip.loadRecord(rec)
 		})
+        this.on('rowdblclick', this.rowDblClick, this)
     },	
     db_refresh: function(){
 		if (this.store.getCount() > 0) {
@@ -518,16 +519,16 @@ mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
         Ext.apply(this, config)
         mpd.browser.DbBrowserPanel.superclass.constructor.apply(this, arguments);
 
-        var self = this
         this.getTopToolbar().add({
             iconCls: 'icon-home',
-            handler: function(){ self.goTo('')}
+            handler: function(){ this.goTo('')},
+            scope: this
         })
-        this.on('rowdblclick', function(g, rowIdx, e) {
-			var row = self.getStore().getAt(rowIdx).data
-			self.goTo(row)
-		})
-    }
+    },
+    rowDblClick: function(g, rowIdx, e) {
+		var row = g.getStore().getAt(rowIdx).data
+		this.goTo(row)
+	}
 });
 Ext.reg('db-browser', mpd.browser.DbBrowserPanel)
 
@@ -557,14 +558,12 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridBase, {
         config.cwd = '<<<playlist>>>'
 		config.cmd = 'playlistinfo'
         Ext.apply(this, config)
-        mpd.browser.PlaylistPanel.superclass.constructor.apply(this, arguments);
-        
-        this.on('rowdblclick', function(g, rowIdx, e) {
-			var row = this.getStore().getAt(rowIdx).data
-			mpd.cmd(['playid', row.id])
-		}, this) 
-		
-    },	
+        mpd.browser.PlaylistPanel.superclass.constructor.apply(this, arguments);		
+    },
+    rowDblClick: function(g, rowIdx, e) {
+		var row = g.getStore().getAt(rowIdx).data
+		mpd.cmd(['playid', row.id])
+	},
     db_refresh: function(){
 		if (!this.store.lastOptions) {
 			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})

@@ -21,6 +21,7 @@
 
 from mpd import MPDClient, ConnectionError, MPDError
 from datetime import datetime
+from time import sleep
 import threading, re, os, socket
 from copy import deepcopy
 import sys, traceback
@@ -30,7 +31,7 @@ HOST = "localhost"
 PORT = 6600
 PASSWORD = None
 _Instance = None
-
+_Poller = None
 
 if os.environ.has_key("MPD_HOST"):
     mpd_host = str(os.environ["MPD_HOST"])
@@ -49,6 +50,9 @@ def Mpd(**kwargs):
     global _Instance
     if _Instance is None:
         _Instance = _Mpd_Instance(**kwargs)
+        _Poller = _Mpd_Poller(**kwargs)
+        _Poller.setDaemon(True)
+        _Poller.start()
     return _Instance
 
 
@@ -80,6 +84,57 @@ class _MpdPlaylist(list):
         self.files = None
 
 
+class _Mpd_Poller(threading.Thread):
+    """
+    A simplified version of the _MPD_Instance which does nothing but
+    run the idle command and force a status sync when needed.  This
+    replaces the need to poll mpd.
+    """
+    
+    def __init__(self, host=None, port=None, password=None):
+        threading.Thread.__init__(self)
+        if host is None:
+            host = HOST
+        if port is None:
+            port = PORT
+        if password is None:
+            password = PASSWORD
+
+        self._host = host
+        self._port = port
+        self._password = password
+        self.con = None
+
+
+    def _connect(self):
+        try:
+            if self.con:
+                self.con.disconnect()
+            else:
+                self.con = MPDClient()
+        except:
+            self.con = MPDClient()
+
+        self.con.connect(self._host, self._port)
+        if self._password:
+            self.con.password(self._password)
+            
+    
+    def run(self):
+        global _Instance
+        self._connect()
+        print "Starting MPD Poller..."
+        while True:
+            try:
+                changes = self.con.idle()
+                _Instance.sync(changes)
+            except (ConnectionError, socket.error), e:
+                print "%s\n    reconnecting..." % e
+                self._connect()
+        print "Exiting MPD Poller..."
+                
+                
+
 class _Mpd_Instance:
     """
     Creates a singleton mpd instance where connection issues are handled
@@ -108,15 +163,14 @@ class _Mpd_Instance:
         self._in_list = False
         self.con = None
         self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
-        self.state_stamp = datetime.utcnow()
-        self.state['playlists'] = self.state_stamp.ctime()
+        self.lastcheck = datetime.utcnow()
+        self.state['playlists'] = self.lastcheck.ctime()
         self.playlist = _MpdPlaylist()
         self._dbcache = {}
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
         self.lock = threading.RLock()
         self._connect()
         self.hold = False
-        self.sync(True)
 
 
     def __getattr__(self, name):
@@ -395,25 +449,45 @@ class _Mpd_Instance:
     def password(self, pw):
         self._password = pw
         self._safe_cmd(self.con.password, pw)
+        self.lock.acquire()
+        try:
+            _Poller.password = pw
+            _Poller.con.password(pw)
+        except Exception, e:
+            print '-'*60
+            traceback.print_exc(file=sys.stdout)
+            print '-'*60
+        finally:
+            self.lock.release()
+            
 
 
-    def sync(self, force=False):
+    def sync(self, changes=None):
         if self.hold:
             return self.state
-            
-        n = datetime.utcnow()
-        if not force:
-            # One update per 100 milliseconds is more than enough.
-            dif = n - self.state_stamp
-            if dif.microseconds < 100000:
+                       
+        if not changes:
+            """
+            Called by the server's status method, which means mpd.idle() 
+            has not returned with any significant changes.  The only item
+            which could change without causing a full sync is elapsed,
+            so just update the elapsed seconds if playing.
+            """
+            if self.state.get('state', '') == 'play':
+                n = datetime.utcnow()
+                diff = n - self.lastcheck
+                s = self.state.copy()
+                s['elapsed'] = int(s['elapsed']) + diff.seconds
+                return s
+            else:
                 return self.state
-
+                
         self.lock.acquire()
         try:
             s = self.con.stats()
             s.update(self.con.status())
             t = s.get('time', '0:0').split(':')
-            s['elapsed'] = int(t[0])
+            s['elapsed'] = t[0]
             if s.get('state', '') != 'stop':
                 s.update(self.con.currentsong())
 
@@ -431,7 +505,7 @@ class _Mpd_Instance:
                 self.playlist.version = s['playlist']
 
             self.state.update(s)
-            self.state_stamp = n
+            self.lastcheck = datetime.utcnow()
 
         except (ConnectionError, socket.error), e:
             print "%s\n    reconnecting..." % e
@@ -441,7 +515,6 @@ class _Mpd_Instance:
             print '-'*60
             traceback.print_exc(file=sys.stdout)
             print '-'*60
-
 
         finally:
             self.lock.release()

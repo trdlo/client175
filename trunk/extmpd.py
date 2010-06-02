@@ -184,6 +184,7 @@ class Root:
                 else:
                     sleep(sleep_time)
                 mpd.hold = False
+                mpd.sync()
                     
             return "OK"
         else:
@@ -248,7 +249,6 @@ class Root:
 
 
     def index(self):
-        mpd.sync()
         stats = ["<tr><td><b>%s:</b></td><td>&nbsp;&nbsp;%s</td></tr>" % (k, v) for k,v in mpd.state.items()]
         return "<table>" + "".join(stats) + "</table>"
     index.exposed = True
@@ -391,8 +391,17 @@ class Root:
 
 
     def status(self, **kwargs):
-        mpd.sync()
-        return json.dumps(mpd.state)
+        client_uptime = kwargs.get('uptime')
+        if not client_uptime:
+            s = mpd.sync()
+            return json.dumps(s)
+        n = 0
+        while n < 100:
+            if mpd.state.get('uptime', '') <> client_uptime:
+                return json.dumps(mpd.state)
+            sleep(0.1)
+            n += 1
+        return 'NO CHANGE'
     status.exposed = True
 
 

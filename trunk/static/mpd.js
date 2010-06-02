@@ -31,31 +31,58 @@ mpd.events.addEvents("repeat", "playlists", "consume", "random", "uptime",
 	"playlistname", "songs")
 	
 
-mpd.timer_delay = 1500
-mpd.status = {}
+mpd.timer_delay = 100
+mpd.status = {'state': 'stop'}
 mpd._updateValue = function(key, val) {
 	if (val != Ext.value(mpd.status[key], null)) {
 		mpd.status[key] = val
 		mpd.events.fireEvent.defer(10, mpd.events, [key, val])
 	}
 }
+
+mpd._updateElapsed = function () {
+	/**
+	 * Update the elapsed time.  Working off of the clients clock and 
+	 * calculating the time since the last known value prevents drift
+	 * from javascript polling, which is not precise enough.
+	 **/
+	var now = new Date()
+	var diff = Math.round( now.getElapsed(this.startDate)/1000 )
+	var e = this.startElapsed + diff
+	mpd._updateValue('elapsed', e)
+}
+
+mpd._updateElapsedRunner = new Ext.util.TaskRunner()
+
+
 mpd.checkStatus = new Ext.util.DelayedTask(function() {
     Ext.Ajax.request({
         url: '/status',
+        params: {'uptime': mpd.status.uptime},
         success: function (req, opt) {
 			try {
-				s = Ext.util.JSON.decode(req.responseText)
-				Ext.iterate(s, mpd._updateValue)
-				
-				if (mpd.status.state == 'play') {
-					var t = (mpd.timer_delay < 200) ? mpd.timer_delay : 200
-					mpd.timer_delay = 200
-				} else {
-					var t = mpd.timer_delay || 200
-					t = (t > 3000) ? 3000 : t
-					mpd.timer_delay = t * 2
+				var txt = req.responseText
+				if (txt != 'NO CHANGE') {
+					mpd._updateElapsedRunner.stopAll()
+					var obj = Ext.util.JSON.decode(txt)
+					Ext.iterate(obj, mpd._updateValue)
+					/** 
+					 * Rather than constantly polling for elapsed time changes,
+					 * just update the elapsed time internally.  It has 
+					 * a smoother appearance that way and is actually
+					 * more accurate on average.
+					 **/
+					if (mpd.status.state == 'play') {
+						var task = {
+							startDate: new Date(),
+							startElapsed: parseInt(mpd.status.elapsed),
+							run: mpd._updateElapsed,
+							interval: 1000
+						}
+						mpd._updateElapsedRunner.start(task)
+					}
 				}
-				mpd.checkStatus.delay(t)
+				mpd.checkStatus.delay(10)
 			} catch (e) {
 				console.log(e)
 				mpd.checkStatus.delay(3000)
@@ -70,7 +97,6 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 
  
 mpd.cmd = function (aCmd, callBack) {
-    mpd.timer_delay = 100
     var url = ".."
     Ext.each(aCmd, function(item) {
 		url += "/" + encodeURIComponent(item)
@@ -82,7 +108,6 @@ mpd.cmd = function (aCmd, callBack) {
 				d = Ext.util.JSON.decode(response.responseText)
 				callBack(d)
 			}
-            mpd.checkStatus.delay(200)
         },
         failure: function (req, opt) {
 			var m = "The following error was encontered when sending the command:&nbsp;&nbsp;<b>" +
