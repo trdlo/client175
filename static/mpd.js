@@ -52,7 +52,7 @@ mpd._updateElapsed = function () {
 	mpd._updateValue('elapsed', e)
 }
 
-mpd._updateElapsedRunner = new Ext.util.TaskRunner()
+mpd._elapsedRunner = new Ext.util.TaskRunner()
 
 
 mpd.checkStatus = new Ext.util.DelayedTask(function() {
@@ -63,7 +63,7 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 			try {
 				var txt = req.responseText
 				if (txt != 'NO CHANGE') {
-					mpd._updateElapsedRunner.stopAll()
+					mpd._elapsedRunner.stopAll()
 					var obj = Ext.util.JSON.decode(txt)
 					Ext.iterate(obj, mpd._updateValue)
 					/** 
@@ -79,7 +79,7 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 							run: mpd._updateElapsed,
 							interval: 1000
 						}
-						mpd._updateElapsedRunner.start(task)
+						mpd._elapsedRunner.start(task)
 					}
 				}
 				mpd.checkStatus.delay(10)

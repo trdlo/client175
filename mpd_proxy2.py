@@ -124,6 +124,7 @@ class _Mpd_Poller(threading.Thread):
         global _Instance
         self._connect()
         print "Starting MPD Poller..."
+        _Instance.sync(['startup'])
         while True:
             try:
                 changes = self.con.idle()
@@ -187,14 +188,6 @@ class _Mpd_Instance:
 
         if name in ('lsinfo', 'find', 'search', 'playlistinfo', 'listplaylistinfo'):
             return lambda *args: self._extendDbResult(self._safe_cmd(fn, args))
-        elif name in ('save', 'rm', 'rename'):
-            try:
-                self.lock.acquire()
-                self.state['playlists'] = datetime.utcnow().ctime()
-            except Exception, e:
-                print e
-            finally:
-                self.lock.release()
         return lambda *args: self._safe_cmd(fn, args)
 
 
@@ -375,6 +368,11 @@ class _Mpd_Instance:
 
 
     def list(self, *args):
+        command = 'list ' + ' '.join(args)
+        cached = self._dbcache.get(command)
+        if cached is not None:
+            return cached
+            
         what = args[0]
         data = self._safe_cmd(self.con.list, args)
         for index in range(len(data)):
@@ -388,18 +386,44 @@ class _Mpd_Instance:
                 'ptime': hmsFromSeconds(c['playtime']),
                 'songs': int(c['songs'])
             }
+        
+        try:
+            self.lock.acquire()
+            self._dbcache[command] = data
+        except Exception, e:
+            traceback.print_exc(file=sys.stdout)
+        finally:
+            self.lock.release()
         return data
 
 
     def listplaylists(self, *args):
+        command = 'listplaylists'
+        cached = self._dbcache.get(command)
+        if cached is not None:
+            return cached
+            
         data = self._safe_cmd(self.con.listplaylists, args)
         for index in range(len(data)):
             item = data[index]['playlist']
+            songs = self._safe_cmd(self.con.listplaylistinfo, (item,))
+            playtime = sum([int(x.get('time', 0)) for x in songs])
             data[index] = {
                 'title': item,
                 'type': 'playlist',
-                'playlist': item
+                'playlist': item,
+                'songs': len(songs),
+                'time': playtime,
+                'ptime': hmsFromSeconds(playtime)
             }
+            
+        try:
+            self.lock.acquire()
+            self._dbcache[command] = data
+        except Exception, e:
+            traceback.print_exc(file=sys.stdout)
+        finally:
+            self.lock.release()
         return data
 
 
@@ -436,7 +460,6 @@ class _Mpd_Instance:
             self.lock.acquire()
             try:
                 self.state['playlistname'] = playlistName
-                self.state['playlists'] = datetime.utcnow().ctime()
             except Exception, e:
                 print '-'*60
                 traceback.print_exc(file=sys.stdout)
@@ -503,7 +526,12 @@ class _Mpd_Instance:
                 changes = [self._extendFile(x) for x in self.plchanges(plver)]
                 self.playlist.update(changes, ln)
                 self.playlist.version = s['playlist']
-
+            
+            if 'stored_playlist' in changes:
+                if self._dbcache.has_key('listplaylists'):
+                    del self._dbcache['listplaylists']
+                s['playlists'] = datetime.utcnow().ctime()
+                
             self.state.update(s)
             self.lastcheck = datetime.utcnow()
 
