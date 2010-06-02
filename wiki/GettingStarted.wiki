@@ -1,4 +1,4 @@
-#summary Instructions on downloading and running ExtMPD
+#summary Instructions for downloading and running ExtMPD
 =Introduction=
 This is intended to be run on the same server as mpd and will default to connecting to localhost:6600.  It will, however, use the MPD_HOST and MPD_PORT environment variables if they exist.  Tag editing will only work if the files are accessible and writable by the user running the server and the music_directory option is set correctly in site.conf.
 
