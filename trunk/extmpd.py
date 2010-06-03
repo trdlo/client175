@@ -386,13 +386,14 @@ class Root:
         else:
             result = data
             
-        if not cmd.startswith('list '):
+        if not cmd.startswith('list ') and cmd <> 'playlistinfo':
             for item in data:
                 if item['type'] == 'file':
-                    pl = mpd.playlist.getByFile(item['file'])
-                    if pl:
-                        item['pos'] = pl['pos']
-                        item['id'] = pl['id']
+                    if item.get('pos') is None:
+                        pl = mpd.playlist.getByFile(item['file'])
+                        if pl:
+                            item['pos'] = pl['pos']
+                            item['id'] = pl['id']
 
         return json.dumps(result)
     query.exposed = True

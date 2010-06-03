@@ -509,6 +509,8 @@ class _Mpd_Instance:
 
             plver = self.playlist.version
             if plver <> s['playlist']:
+                if self._dbcache.has_key('playlistinfo'):
+                    del self._dbcache['playlistinfo']
                 ln = int(s['playlistlength'])
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
