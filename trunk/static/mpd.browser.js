@@ -110,7 +110,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, {
             store: this.store,
             region: 'center',
-            cm: this._fullColModel,
+            cm: this._homeColModel,
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
             autoExpandMax: 400,
@@ -483,7 +483,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             store.reload()
         }
     },
-    _currentView: 'full',
+    _currentView: 'home',
     _fullColModel: null,
     _homeColModel: new Ext.grid.ColumnModel({
 		columns: [
@@ -595,24 +595,6 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridBase, {
 	}
 })
 Ext.reg('tab-playlist', mpd.browser.PlaylistPanel)
-
-
-mpd.browser.SearchPanel = Ext.extend(mpd.browser.GridBase, {
-    constructor: function(config) {
-        Ext.apply(this, config)
-        mpd.browser.SearchPanel.superclass.constructor.apply(this, arguments);
-        this.getTopToolbar().add( new Ext.app.SearchField({store: this.store}) )
-        this.on('rowdblclick', function(g, rowIdx, e) {
-			var row = this.getStore().getAt(rowIdx).data
-			if (row.pos) {
-				mpd.cmd( ['playid', row.id] )
-			} else {
-				mpd.cmd( ['add', row.file] )
-			}
-		}, this)       
-    }
-})
-Ext.reg('tab-search', mpd.browser.SearchPanel)
 
 
 mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {

@@ -140,11 +140,13 @@ mpd.util.context.add = mpd.util.context.menu.addMenuItem.createDelegate(mpd.util
 
 mpd.util.context.show = function(itemData, event) {
     if (itemData.length < 1) return null
+    var first = itemData[0]
+    if (!first.type || !first.title) return null
     var muc = mpd.util.context
     var add = muc.add
     var c = muc.items
     muc.menu.removeAll()
-    if (itemData[0].pos) {
+    if (first.pos) {
         add(c.play)
         add(c.remove)
         add(c.move_start)
@@ -152,7 +154,7 @@ mpd.util.context.show = function(itemData, event) {
     } else {
         add(c.add)
         add(c.replace)
-        switch (itemData[0].type) {
+        switch (first.type) {
             case 'playlist':
                 add(c.rename);
                 add(c.rm);

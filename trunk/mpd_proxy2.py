@@ -210,11 +210,6 @@ class _Mpd_Instance:
             keys = item.keys()
             if 'file' in keys:
                 item = self._extendFile(item)
-                if 'pos' not in keys:
-                    pl = self.playlist.getByFile(item['file'])
-                    if pl:
-                        item['pos'] = pl['pos']
-                        item['id'] = pl['id']
             elif 'directory' in keys:
                 item['type'] = 'directory'
                 item['title'] = item['directory'].split('/')[-1]
@@ -236,12 +231,7 @@ class _Mpd_Instance:
         if p:
             item['pos'] = int(p) + 1
         else:
-            pl = self.playlist.getByFile(item['file'])
-            if pl:
-                item['pos'] = pl['pos']
-                item['id'] = pl['id']
-            else:
-                item['id'] = "file:" + item['file']
+            item['id'] = "file:" + item['file']
         item['type'] = 'file'
         item['ptime'] = hmsFromSeconds(item.get('time', 0))
         if not item.get('title'):
@@ -519,7 +509,6 @@ class _Mpd_Instance:
 
             plver = self.playlist.version
             if plver <> s['playlist']:
-                self._dbcache = {}
                 ln = int(s['playlistlength'])
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
