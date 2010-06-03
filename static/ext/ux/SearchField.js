@@ -46,6 +46,7 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
     clearSearch: function(store){
         var b = Ext.getCmp('dbtabbrowser').getActiveBrowser()
         var cwd = b.cwd
+        console.log(cwd)
         b.cwd = "<<<Force Refresh>>>"
         b.goTo(cwd)
     },

@@ -391,10 +391,10 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				t = 'Search: ' + dir
 				tb.insertButton(x++, {
 					text: 'Clear Search ('+ dir + ')',
-					id: this.cwd,
-					handler: function(){
+					dir: this.cwd,
+					handler: function(btn){
 						g.cwd = "<<<Nothing>>>"
-						g.goTo(this.id)
+						g.goTo(this.dir)
 					}
 				})
 				tb.add("->")
@@ -426,8 +426,8 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				tb.insertButton(x++, {
 					text: 'Folders',
 					iconCls: 'icon-directory',
-					id: '/',
-					handler: function(){ g.goTo(this.id) }
+					dir: '/',
+					handler: function(){ g.goTo(this.dir) }
 				})
 				if (dir > '/') {
 					var parts = dir.split("/")
@@ -459,14 +459,14 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				tb.insertButton(x++, {
 					text: titleCase(itemType) + 's',
 					iconCls: 'icon-group-unknown icon-group-'+itemType,
-					id: itemType+":",
+					dir: itemType+":",
 					handler: function(){ g.goTo(base) }
 				})
 				tb.insert(x++, '-')
 				tb.insertButton(x++, {
 					text: dir,
 					iconCls: 'icon-'+itemType,
-					id: this.cwd,
+					dir: this.cwd,
 					handler: function(){ g.goTo(obj) }
 				})
 				tb.add("->")
