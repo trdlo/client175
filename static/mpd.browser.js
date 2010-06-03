@@ -220,12 +220,11 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, config)
         mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
 
-        mpd.events.on('playlists', function(){
-			if (this.cwd == 'playlist:') this.db_refresh()
-		}, this)
+        mpd.events.on('playlists', this.playlists_refresh, this)
         mpd.events.on('playlist', this.db_refresh, this)
         mpd.events.on('db_update', this.db_refresh, this)
         this.on('beforedestroy', function(){
+			mpd.events.un('playlists', this.playlists_refresh, this)
 			mpd.events.un('playlist', this.db_refresh, this)
 			mpd.events.un('db_update', this.db_refresh, this)
 		})
@@ -266,6 +265,9 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 				this.store.reload()
 			}
 		}
+	},
+	playlists_refresh: function(){
+		if (this.cwd == 'playlist:') this.db_refresh()
 	},
     goTo: function(obj) {
 		if (Ext.isObject(obj)) {
