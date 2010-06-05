@@ -1,4 +1,4 @@
-ExtMPD
+Client175
 ========================================================================
 Copyright 2009 Chris Seickel
 
@@ -18,12 +18,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 MA 02110-1301, USA.
 
 License:  COPYING.txt
-Website:  http://code.google.com/p/extmpd/
+Website:  http://code.google.com/p/client175/
 
 
 
-ExtMPD builds upon the works of other open source projects not 
-involved with the development of ExtMPD. 
+Client175 builds upon the works of other open source projects not 
+involved with the development of Client175. 
 
 These projects include (in alpha order):
 

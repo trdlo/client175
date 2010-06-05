@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-#       extmpd.py
+#       Client175
 #
 #       Copyright 2009 Chris Seickel
 #
