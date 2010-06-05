@@ -119,5 +119,5 @@ Ext.onReady(function(){
 		}
     })	
 });
-document.title = 'ExtMPD: ' + location.hostname
+document.title = 'Client175  (' + location.hostname + ')'
 

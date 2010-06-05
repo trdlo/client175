@@ -235,7 +235,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
                 endBox,
                 new Ext.Button({
 					iconCls: 'icon-about',
-					tooltip: 'About ExtMPD',
+					tooltip: 'About Client175',
 					handler: function() {
 						window.open('/about')
 					}
