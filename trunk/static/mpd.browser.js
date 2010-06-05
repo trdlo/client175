@@ -110,7 +110,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, {
             store: this.store,
             region: 'center',
-            cm: this._homeColModel,
+            columns: [{id: 'ctitle', header: '', dataIndex: 'none'}],
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
             autoExpandMax: 400,
@@ -140,7 +140,6 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 			}),
             listeners: {
                 'cellmousedown': function(g, rowIdx, colIdx, e) {
-                    if (e.button && e.button == 1) return true
                     var cm = self.getColumnModel()
                     var col = cm.getColumnId(colIdx)
                     var rec = self.store.getAt(rowIdx)
@@ -180,7 +179,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
                             })
                             sm.clearSelections()
                             self.selected = []
-                            break;
+                            break;						
                     }
                 },
                 "mouseover": function (e) {
@@ -200,6 +199,17 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 						var col = cm.getColumnId(colIdx)
 						if (col == 'cpos') {
 							self.onHoverOut()
+						}
+					}
+                },
+                "mouseup": function (e) {
+					if (!Ext.isChrome && e.button == 1) {
+						var v = this.getView()
+						var rowIdx = v.findRowIndex(e.getTarget())
+						if (rowIdx !== false) {
+							var rec = this.getStore().getAt(rowIdx)
+							var tb = Ext.getCmp('dbtabbrowser')
+							if (rec && tb) tb.addTab(rec.data)
 						}
 					}
                 },
@@ -485,7 +495,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             store.reload()
         }
     },
-    _currentView: 'home',
+    _currentView: '',
     _fullColModel: null,
     _homeColModel: new Ext.grid.ColumnModel({
 		columns: [
