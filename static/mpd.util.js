@@ -21,6 +21,18 @@ mpd.util.context.items = {
             mpd.util.context.lastCommand = self.id
         }
     },
+    'load': {
+        text: 'Load',
+        id: 'mpd-context-load',
+        iconCls: 'icon-replace',
+        handler: function(self, event) {
+            var data = mpd.util.context.itemData
+            if (data[0].type == 'playlist') {
+                mpd.cmd(['load', data[0].playlist, true])
+            }
+            mpd.util.context.lastCommand = self.id
+        }
+    },
     'replace': {
         text: 'Replace Playlist',
         id: 'mpd-context-replace',
@@ -39,7 +51,7 @@ mpd.util.context.items = {
         }
     },
     'rename': {
-        text: 'Rename Playlist',
+        text: 'Rename',
         id: 'mpd-context-rename',
         iconCls: 'icon-edit',
         handler: function(self, event) {
@@ -56,7 +68,7 @@ mpd.util.context.items = {
         }
     },
     'rm': {
-        text: 'Delete Playlist',
+        text: 'Delete',
         id: 'mpd-context-rm',
         iconCls: 'icon-cancel',
         handler: function(self, event) {
@@ -152,24 +164,30 @@ mpd.util.context.show = function(itemData, event) {
         add(c.move_start)
         add(c.move_end)
     } else {
-        add(c.add)
-        add(c.replace)
         switch (first.type) {
             case 'playlist':
+                add(c.load)
+                add(c.add)
                 add(c.rename);
                 add(c.rm);
                 muc.menu.addSeparator();
                 add(c.new_tab);
                 break;
             case 'directory':
+                add(c.add)
+                add(c.replace)
                 add(c.update);
                 muc.menu.addSeparator();
                 add(c.new_tab);
                 break;
             case 'file':
+                add(c.add)
+                add(c.replace)
                 add(c.update);
                 break;
             default:
+                add(c.add)
+                add(c.replace)
                 muc.menu.addSeparator();
                 add(c.new_tab);
                 break;

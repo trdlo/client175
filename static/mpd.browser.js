@@ -42,7 +42,7 @@ Ext.override(Ext.grid.GridView, {
 });
 
 
-mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
+mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
     constructor: function(config) {
         var self = this
         this.cwd = ''
@@ -228,7 +228,7 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             }
         });
         Ext.apply(this, config)
-        mpd.browser.GridBase.superclass.constructor.apply(this, arguments);
+        mpd.browser.GridPanel.superclass.constructor.apply(this, arguments);
 
         mpd.events.on('playlists', this.playlists_refresh, this)
         mpd.events.on('playlist', this.db_refresh, this)
@@ -495,6 +495,10 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
             store.reload()
         }
     },
+    rowDblClick: function(g, rowIdx, e) {
+		var row = g.getStore().getAt(rowIdx).data
+		this.goTo(row)
+	},
     _currentView: '',
     _fullColModel: null,
     _homeColModel: new Ext.grid.ColumnModel({
@@ -546,28 +550,10 @@ mpd.browser.GridBase = Ext.extend(Ext.grid.GridPanel, {
 		this._currentView = 'simple'
 	}
 })
+Ext.reg('tab-browser', mpd.browser.GridPanel)
 
 
-mpd.browser.DbBrowserPanel = Ext.extend(mpd.browser.GridBase, {
-    constructor: function(config) {
-        Ext.apply(this, config)
-        mpd.browser.DbBrowserPanel.superclass.constructor.apply(this, arguments);
-
-        this.getTopToolbar().add({
-            iconCls: 'icon-home',
-            handler: function(){ this.goTo('')},
-            scope: this
-        })
-    },
-    rowDblClick: function(g, rowIdx, e) {
-		var row = g.getStore().getAt(rowIdx).data
-		this.goTo(row)
-	}
-});
-Ext.reg('db-browser', mpd.browser.DbBrowserPanel)
-
-
-mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridBase, {
+mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridPanel, {
     constructor: function(config) {
         config.tbar = mpd.util.createPlaylistToolbar()
         config.tbar.addSeparator()
@@ -690,7 +676,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
 			iconCls: 'icon-directory',
 			title: 'Home',
 			closable: !disableClose,
-			items: {'xtype': 'db-browser'}
+			items: {'xtype': 'tab-browser'}
         })
         this.setActiveTab(t)
 		if (Ext.isDefined(dir)) t.get(0).goTo(dir)

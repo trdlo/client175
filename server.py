@@ -39,7 +39,6 @@ cherrypy.config.update( {
 } )
 cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
 MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
-COVERS_DIR = cherrypy.config.get('covers_directory', COVERS_DIR)
 
 import metadata
 from metadata._base import NotReadable, NotWritable
@@ -135,60 +134,56 @@ class Root:
     default.exposed = True
 
 
-    def edit(self, id, itemtype, **kwargs):            
-        if itemtype == 'playlist':
-            newname = kwargs.get("playlist")
-            if newname:
-                mpd.rename(id, newname)
-            else:
-               raise cherrypy.HTTPError(501, message="New playlist name not found.")
-               
-        elif itemtype == 'file':
-            ids = id.split(";")
-            try:
-                mpd.hold = True
-                sleep_time = 0.5
-                tags = {}
-                for tag, val in kwargs.items():
-                    tag = tag.lower()
-                    if tag == 'track':
-                        tags['tracknumber'] = val
-                    elif tag == 'disc':
-                        tags['discnumber'] = val
-                    else:
-                        tags[tag] = val
-                        
-                for id in ids:
-                    if not id.lower().endswith(".wav"):
-                        sleep_time += 0.1
-                        loc = os.path.join(MUSIC_DIR, id)
-                        f = metadata.get_format(loc)
-                        f.write_tags(tags)
-                        
-                        updated = False
-                        while not updated:
-                            try:
-                                mpd.update(id)
-                                updated = True
-                            except MPDError, e:
-                                if str(e) == "[54@0] {update} already updating":
-                                    sleep(0.01)
-                                else:
-                                    print e
-                                    break
-            finally:
-                # Sleep to let all of the updates go through and avoid
-                # forcing too many db_update refreshes.
-                if sleep_time > 2:
-                    sleep(2)
+    def edit(self, id, **kwargs):
+        if not os.path.exists(MUSIC_DIR):
+            m = """<h1>The configured music directory does not exist!</h1>
+            <p style="color:red">%s</p>
+            Please set the music_directory option in site.conf.""" % MUSIC_DIR
+            raise cherrypy.HTTPError(501, message=m)
+            
+        ids = id.split(";")
+        try:
+            mpd.hold = True
+            sleep_time = 0.5
+            tags = {}
+            for tag, val in kwargs.items():
+                tag = tag.lower()
+                if tag == 'track':
+                    tags['tracknumber'] = val
+                elif tag == 'disc':
+                    tags['discnumber'] = val
                 else:
-                    sleep(sleep_time)
-                mpd.hold = False
-                mpd.sync()
+                    tags[tag] = val
+                    
+            for id in ids:
+                if not id.lower().endswith(".wav"):
+                    sleep_time += 0.1
+                    loc = os.path.join(MUSIC_DIR, id)
+                    f = metadata.get_format(loc)
+                    f.write_tags(tags)
+                    
+                    updated = False
+                    while not updated:
+                        try:
+                            mpd.update(id)
+                            updated = True
+                        except MPDError, e:
+                            if str(e) == "[54@0] {update} already updating":
+                                sleep(0.01)
+                            else:
+                                print e
+                                break
+        finally:
+            # Sleep to let all of the updates go through and avoid
+            # forcing too many db_update refreshes.
+            if sleep_time > 2:
+                sleep(2)
+            else:
+                sleep(sleep_time)
+            mpd.hold = False
+            mpd.sync(['db_update'])
                     
             return "OK"
-        else:
-            raise cherrypy.HTTPError(501, message="Editing of type '%s' not supported." % itemtype)
     edit.exposed = True
 
 
@@ -249,8 +244,7 @@ class Root:
 
 
     def index(self):
-        stats = ["<tr><td><b>%s:</b></td><td>&nbsp;&nbsp;%s</td></tr>" % (k, v) for k,v in mpd.state.items()]
-        return "<table>" + "".join(stats) + "</table>"
+        raise cherrypy.HTTPRedirect('static/index.html', 301)
     index.exposed = True
     
     
@@ -386,14 +380,20 @@ class Root:
         else:
             result = data
             
-        if not cmd.startswith('list ') and cmd <> 'playlistinfo':
-            for item in data:
-                if item['type'] == 'file':
-                    if item.get('pos') is None:
-                        pl = mpd.playlist.getByFile(item['file'])
-                        if pl:
-                            item['pos'] = pl['pos']
-                            item['id'] = pl['id']
+        if cmd.startswith('list '):
+            return json.dumps(result)
+            
+        if cmd in ('playlistinfo', 'listplaylists'):
+            return json.dumps(result)
+            
+        if limit:
+            data = result['data']
+            
+        for i in range(len(data)):
+            if data[i]['type'] == 'file':
+                pl = mpd.playlist.getByFile(data[i]['file'])
+                if pl:
+                    data[i] = pl
 
         return json.dumps(result)
     query.exposed = True
