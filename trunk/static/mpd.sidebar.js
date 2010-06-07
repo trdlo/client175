@@ -552,15 +552,12 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
     saveChanges: function() {
 		this.loadMask.show()
 		var r = this.records
-		var d = r[0].data
-		var data = {'itemtype': d.type, 'id': d[d.type]}
-		if (r.length > 1) {
-			files = []
-			Ext.each(r, function(item) {
-				files.push(item.data.file)
-			})
-			data.id = files.join(";")
-		}
+		var data = {}
+        var files = []
+        Ext.each(r, function(item) {
+            files.push(item.data.file)
+        })
+        data.id = files.join(";")
 		Ext.apply(data, this.changes)
 		
 		Ext.Ajax.request({

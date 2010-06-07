@@ -73,6 +73,7 @@ class _MpdPlaylist(list):
             return self[index]
 
     def update(self, changes, new_length):
+        self.files = None
         old_length = len(self)
         if new_length >= old_length:
             for x in range(new_length - old_length):
@@ -81,7 +82,7 @@ class _MpdPlaylist(list):
             del self[new_length:]
         for change in changes:
             self[int(change['pos'])-1] = change
-        self.files = None
+
 
 
 class _Mpd_Poller(threading.Thread):
@@ -123,7 +124,6 @@ class _Mpd_Poller(threading.Thread):
     def run(self):
         global _Instance
         self._connect()
-        print "Starting MPD Poller..."
         _Instance.sync(['startup'])
         while True:
             try:
@@ -228,10 +228,10 @@ class _Mpd_Instance:
 
     def _extendFile(self, item):
         p = item.get('pos')
-        if p:
-            item['pos'] = int(p) + 1
-        else:
+        if p is None:
             item['id'] = "file:" + item['file']
+        else:
+            item['pos'] = int(p) + 1
         item['type'] = 'file'
         item['ptime'] = hmsFromSeconds(item.get('time', 0))
         if not item.get('title'):
@@ -477,6 +477,7 @@ class _Mpd_Instance:
 
     def sync(self, changes=None):
         if self.hold:
+            print "ON HOLD..."
             return self.state
                        
         if not changes:
@@ -497,6 +498,7 @@ class _Mpd_Instance:
                 
         self.lock.acquire()
         try:
+            print changes
             s = self.con.stats()
             s.update(self.con.status())
             t = s.get('time', '0:0').split(':')
