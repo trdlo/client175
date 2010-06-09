@@ -82,7 +82,7 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
 						mpd._elapsedRunner.start(task)
 					}
 				}
-				mpd.checkStatus.delay(10)
+				mpd.checkStatus.delay(100)
 			} catch (e) {
 				console.log(e)
 				mpd.checkStatus.delay(3000)

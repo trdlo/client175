@@ -135,55 +135,53 @@ class Root:
 
 
     def edit(self, id, **kwargs):
+        err = """THE FILE OR DIRECTORY DOES NOT EXIST!\n
+        \n
+        %s\n
+        \n
+        Please set the music_directory option in site.conf."""
+        
         if not os.path.exists(MUSIC_DIR):
-            m = """<h1>The configured music directory does not exist!</h1>
-            <p style="color:red">%s</p>
-            Please set the music_directory option in site.conf.""" % MUSIC_DIR
-            raise cherrypy.HTTPError(501, message=m)
+            raise cherrypy.HTTPError(501, message=err % MUSIC_DIR)
             
         ids = id.split(";")
-        try:
-            mpd.hold = True
-            sleep_time = 0.5
-            tags = {}
-            for tag, val in kwargs.items():
-                tag = tag.lower()
-                if tag == 'track':
-                    tags['tracknumber'] = val
-                elif tag == 'disc':
-                    tags['discnumber'] = val
-                else:
-                    tags[tag] = val
-                    
-            for id in ids:
-                if not id.lower().endswith(".wav"):
-                    sleep_time += 0.1
-                    loc = os.path.join(MUSIC_DIR, id)
-                    f = metadata.get_format(loc)
-                    f.write_tags(tags)
-                    
-                    updated = False
-                    while not updated:
-                        try:
-                            mpd.update(id)
-                            updated = True
-                        except MPDError, e:
-                            if str(e) == "[54@0] {update} already updating":
-                                sleep(0.01)
-                            else:
-                                print e
-                                break
-        finally:
-            # Sleep to let all of the updates go through and avoid
-            # forcing too many db_update refreshes.
-            if sleep_time > 2:
-                sleep(2)
+        tags = {}
+        for tag, val in kwargs.items():
+            tag = tag.lower()
+            if tag == 'track':
+                tags['tracknumber'] = val
+            elif tag == 'disc':
+                tags['discnumber'] = val
             else:
-                sleep(sleep_time)
-            mpd.hold = False
-            mpd.sync(['db_update'])
-                    
-            return "OK"
+                tags[tag] = val
+                
+        locations = []
+        for id in ids:
+            loc = os.path.join(MUSIC_DIR, id)
+            locations.append(loc)
+            if not os.path.exists(loc):
+                raise cherrypy.HTTPError(501, message=err % loc)
+                
+            
+        for loc in locations:
+            if not loc.lower().endswith(".wav"):
+                f = metadata.get_format(loc)
+                f.write_tags(tags)
+                
+        for id in ids:
+            updated = False
+            while not updated:
+                try:
+                    mpd.update(id)
+                    updated = True
+                except MPDError, e:
+                    if str(e) == "[54@0] {update} already updating":
+                        sleep(0.01)
+                    else:
+                        print e
+                        break
+        
+        return "OK"
     edit.exposed = True
 
 

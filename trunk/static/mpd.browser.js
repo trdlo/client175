@@ -232,7 +232,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 
         mpd.events.on('playlists', this.playlists_refresh, this)
         mpd.events.on('playlist', this.db_refresh, this)
-        mpd.events.on('db_update', this.db_refresh, this)
+        mpd.events.on('db_update', this.db_refresh, this, {buffer: 1000})
         this.on('beforedestroy', function(){
 			mpd.events.un('playlists', this.playlists_refresh, this)
 			mpd.events.un('playlist', this.db_refresh, this)
@@ -818,7 +818,7 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     mpd.events.on('db_update', function(){
                         tree.root.eachChild(function(node){
                             if (node.isLoaded()) node.reload()
-                        })
+                        }, tree, {buffer: 1000})
                     })
                     mpd.events.on('playlists', function(){
                         var node = tree.root.findChild('id', 'playlist:')
