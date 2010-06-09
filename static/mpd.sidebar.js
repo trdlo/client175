@@ -564,12 +564,10 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 			url: '../edit',
 			params: data,
 			success: function(response, opts) {
-				mpd.checkStatus.delay(0)
 				this.loadMask.hide()
 			},
 			failure: function(response, opts) {
 				Ext.Msg.alert('Error', response.responseText)
-				mpd.checkStatus.delay(0)
 				this.loadMask.hide()
 			},
 			scope: this

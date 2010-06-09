@@ -171,7 +171,6 @@ class _Mpd_Instance:
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
         self.lock = threading.RLock()
         self._connect()
-        self.hold = False
 
 
     def __getattr__(self, name):
@@ -475,11 +474,7 @@ class _Mpd_Instance:
             
 
 
-    def sync(self, changes=None):
-        if self.hold:
-            print "ON HOLD..."
-            return self.state
-                       
+    def sync(self, changes=None):                       
         if not changes:
             """
             Called by the server's status method, which means mpd.idle() 
