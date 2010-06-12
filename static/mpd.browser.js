@@ -54,13 +54,14 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
                 url: '../query',
                 baseParams: {'cmd': cmd},
                 remoteSort: true,
+                autoSave: false,
                 reader: new Ext.data.JsonReader({
                     root            : 'data',
                     totalProperty   : 'totalCount',
                     idProperty      : 'id'
                   },
                   mpd.dbFields()
-                )  
+                )
             })
         }
 			
@@ -94,6 +95,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 		]
 		Ext.each(mpd.EXTRA_FIELDS, function(item) {
 			cols.push({
+                id: 'c'+item.name,
 				header: item.header,
 				dataIndex: item.name,
 				hidden: true
@@ -106,11 +108,14 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 				sortable: true
 			}
 		})
-		
+        		
         Ext.apply(this, {
+            stateId: 'mpd_dbbrowser_grid',
+            stateful: true,
             store: this.store,
             region: 'center',
             columns: [{id: 'ctitle', header: '', dataIndex: 'none'}],
+            //cm: this._fullColModel,
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
             autoExpandMax: 400,
@@ -239,6 +244,12 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			mpd.events.un('db_update', this.db_refresh, this)
 		})
 		
+        this.store.on('update', function (s, rec, action) {
+            if (action == Ext.data.Record.EDIT) {
+                this.showEditButtons();
+            }
+        }, this)
+        
         var sm = self.getSelectionModel()
         this.selected = []
         this.onHover = function(evt, el) {
@@ -253,14 +264,14 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         
 		var ed = Ext.getCmp('tageditor')
 		var ip = Ext.getCmp('infopanel')
-		var tagLoader = new Ext.util.DelayedTask(function() {
+		this.tagLoader = new Ext.util.DelayedTask(function() {
 			var recs = sm.getSelections()
 			if (ed) ed.loadRecords(recs)
 			if (ip) ip.loadRecord(recs[0])
 		})
 		sm.on('selectionchange', function() {
-			tagLoader.delay(300)
-		})
+			this.tagLoader.delay(300)
+		}, this)
 		this.store.on('load', function(s) {
 			var rec = s.getAt(0)
 			if (rec) ip.loadRecord(rec)
@@ -280,6 +291,8 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 		if (this.cwd == 'playlist:') this.db_refresh()
 	},
     goTo: function(obj) {
+        this.store.rejectChanges()
+        this.hideEditButtons()
 		if (Ext.isObject(obj)) {
 			var itemType = obj.type
 			if (itemType == 'time') {
@@ -499,6 +512,68 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 		var row = g.getStore().getAt(rowIdx).data
 		this.goTo(row)
 	},
+    _editButtons: [],
+    hideEditButtons: function() {
+        if (this._editButtons.length == 0) return true
+        var tb = this.getTopToolbar();
+        Ext.each(this._editButtons, tb.remove, tb)
+        this._editButtons = []
+        tb.items.each(function(item){ item.show() })
+        tb.doLayout()
+        this.tagLoader.delay(0)
+    },
+    showEditButtons: function() {
+        if (this._editButtons.length > 0) return true
+        var tb = this.getTopToolbar();
+        tb.items.each(function(item){ item.hide() })
+        this._editButtons.push(tb.add("->"))
+        this._editButtons.push(tb.addButton({
+            text: 'Clear Changes',
+            iconCls: 'icon-cancel',
+            handler: this.rejectChanges,
+            scope: this
+        }))
+        this._editButtons.push(tb.addSeparator())
+        this._editButtons.push(tb.addButton({
+            text: 'Save Changes',
+            iconCls: 'icon-save',
+            handler: this.saveChanges,
+            scope: this
+        }))
+        tb.doLayout()
+    },
+    rejectChanges: function() {
+        this.store.rejectChanges()
+        this.hideEditButtons()
+    },
+    saveChanges: function() {
+        var tb = this.getTopToolbar();
+        this._editButtons[1].disable()
+        this._editButtons[2].disable()
+		var recs = this.store.getModifiedRecords()
+        this.changes = 0
+        Ext.each(recs, function(item) {
+            if (item.dirty) {
+                this.changes++
+                var data = Ext.apply({'id': item.data.file}, item.getChanges())
+                Ext.Ajax.request({
+                    url: '../edit',
+                    params: data,
+                    record: item,
+                    success: function(response, opts) {
+                        opts.record.commit()
+                        if (--this.changes < 1) this.hideEditButtons()
+                    },
+                    failure: function(response, opts) {
+                        opts.record.reject()
+                        Ext.Msg.alert('Error', response.responseText)
+                        if (--this.changes < 1) this.hideEditButtons()
+                    },
+                    scope: this
+                })
+            }
+        }, this)
+	},
     _currentView: '',
     _fullColModel: null,
     _homeColModel: new Ext.grid.ColumnModel({
@@ -536,6 +611,33 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
     }),
 	showFullView: function() {
 		if (this._currentView == 'full') return null
+        
+        /**
+         * Manually apply the state to the full Column Model.
+         * By default, state is applied during grid construction,
+         * but the full column model is not used initially.
+         * 
+         * I also want to pick up changes that might have been made in 
+         * other tabs while this column model was not in use.
+         **/
+        var state = Ext.state.Manager.get('mpd_dbbrowser_grid')
+        var cm = this._fullColModel,
+            cs = state.columns
+        if(cs){
+            for(var i = 0, len = cs.length; i < len; i++){
+                s = cs[i];
+                c = cm.getColumnById(s.id);
+                if(c){
+                    c.hidden = s.hidden;
+                    c.width = s.width;
+                    oldIndex = cm.getIndexById(s.id);
+                    if(oldIndex != i){
+                        cm.moveColumn(oldIndex, i);
+                    }
+                }
+            }
+        }
+        
 		this.reconfigure(this.store, this._fullColModel)
 		this._currentView = 'full'
 	},

@@ -143,8 +143,14 @@ class Root:
         
         if not os.path.exists(MUSIC_DIR):
             raise cherrypy.HTTPError(501, message=err % MUSIC_DIR)
+                
+        loc = os.path.join(MUSIC_DIR, id)
+        if not os.path.exists(loc):
+            raise cherrypy.HTTPError(501, message=err % loc)
             
-        ids = id.split(";")
+        if loc.lower().endswith(".wav"):
+            return "WAV editing not supported."
+            
         tags = {}
         for tag, val in kwargs.items():
             tag = tag.lower()
@@ -154,32 +160,21 @@ class Root:
                 tags['discnumber'] = val
             else:
                 tags[tag] = val
-                
-        locations = []
-        for id in ids:
-            loc = os.path.join(MUSIC_DIR, id)
-            locations.append(loc)
-            if not os.path.exists(loc):
-                raise cherrypy.HTTPError(501, message=err % loc)
-                
+            print '%s[%s] = "%s"' % (id, tag, val)
             
-        for loc in locations:
-            if not loc.lower().endswith(".wav"):
-                f = metadata.get_format(loc)
-                f.write_tags(tags)
-                
-        for id in ids:
-            updated = False
-            while not updated:
-                try:
-                    mpd.update(id)
-                    updated = True
-                except MPDError, e:
-                    if str(e) == "[54@0] {update} already updating":
-                        sleep(0.01)
-                    else:
-                        print e
-                        break
+        f = metadata.get_format(loc)
+        f.write_tags(tags)
+                            
+        updating = False
+        while not updating:
+            try:
+                mpd.update(id)
+                updating = True
+            except MPDError, e:
+                if str(e) == "[54@0] {update} already updating":
+                    sleep(0.01)
+                else:
+                    raise cherrypy.HTTPError(501, message=e)
         
         return "OK"
     edit.exposed = True

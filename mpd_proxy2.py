@@ -132,6 +132,7 @@ class _Mpd_Poller(threading.Thread):
             except (ConnectionError, socket.error), e:
                 print "%s\n    reconnecting..." % e
                 self._connect()
+                _Instance.sync(['startup'])
         print "Exiting MPD Poller..."
                 
                 
@@ -199,7 +200,14 @@ class _Mpd_Instance:
         except:
             self.con = MPDClient()
 
-        self.con.connect(self._host, self._port)
+        try:
+            self.con.connect(self._host, self._port)
+        except ConnectionError, e:
+            print e
+            print "Retrying connection in 3 seconds..."
+            sleep(3.0)
+            self.con.connect(self._host, self._port)
+            
         if self._password:
             self.con.password(self._password)
 
@@ -493,7 +501,6 @@ class _Mpd_Instance:
                 
         self.lock.acquire()
         try:
-            print changes
             s = self.con.stats()
             s.update(self.con.status())
             t = s.get('time', '0:0').split(':')

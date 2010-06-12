@@ -513,35 +513,17 @@ Ext.reg('playlist_sidebar', mpd.sidebar.Playlist)
 
 mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
     constructor: function(config) {
-		this.changes = {}
 		this.records = []
-		this.btnReset = new Ext.Button({
-			text: 'Clear Changes',
-			iconCls: "icon-cancel",
-			disabled: true,
-			handler: this.reloadRecords.createDelegate(this)
-		})
-		this.btnSave = new Ext.Button({
-			text: 'Save Changes',
-			iconCls: "icon-save",
-			disabled: true,
-			handler: this.saveChanges.createDelegate(this)
-		})
-		
         Ext.apply(this, {
 			id: 'tageditor',
 			title: 'Edit Tags',
-			bbar: ["->", this.btnReset, "-", this.btnSave],
 			iconCls: "icon-edit-tags",
 			listeners: {
 				'beforepropertychange': function(src, key, val, old) {
 					if (key.charAt(0) == "(") return false
-					this.changes[key] = val
-					this.btnSave.enable()
-					this.btnReset.enable()
-				},
-				'afterrender': function () {
-					this.loadMask = new Ext.LoadMask(this.bwrap, {msg:"Saving Changes..."});
+					Ext.each(this.records, function(rec) {
+                        if (rec.data[key] != val) rec.set(key, val)
+                    })
 				},
 				'activate': function () {
 					if (this.delayedRecords) this.loadRecords(this.delayedRecords)
@@ -551,37 +533,13 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
         Ext.apply(this, config)
         mpd.sidebar.TagEditor.superclass.constructor.apply(this, arguments);
     },
-    saveChanges: function() {
-		this.loadMask.show()
-		var r = this.records
-		var data = {}
-        var files = []
-        Ext.each(r, function(item) {
-            files.push(item.data.file)
-        })
-        data.id = files.join(";")
-		Ext.apply(data, this.changes)
-		
-		Ext.Ajax.request({
-			url: '../edit',
-			params: data,
-			success: function(response, opts) {
-				this.loadMask.hide()
-			},
-			failure: function(response, opts) {
-				Ext.Msg.alert('Error', response.responseText)
-				this.loadMask.hide()
-			},
-			scope: this
-		})
-	},
     loadRecords: function(records) {
         if (this.ownerCt.layout.activeItem != this) {
             this.delayedRecords = records
             return null
         }
         this.delayedRecords = null
-		// Filter recods for file(s) or a single playlist selection
+		// Filter recods for files only
 		var recs = []
 		if (Ext.isArray(records)) {
 			Ext.each(records, function(item) {
@@ -602,10 +560,16 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 		if (len > 1) {
 			src['(file)'] = '<Multiple Records>'
 			Ext.each(mpd.TAG_TYPES, function (key) {
-				key_lower = key.toLowerCase()
+				key = key.toLowerCase()
+                
+                /** 
+                 * Collect unique values for this field from the given records.
+                 * If there are multiple values, a custom combobox will be created.
+                 * If they all have the same value, the default textbox will be used.
+                 **/
 				var vals = []
 				for (var i=0; i<len; i++) {
-					vals.push(recs[i].data[key_lower])
+					vals.push(recs[i].data[key])
 				}
 				vals = Ext.unique(vals)
 				if (vals.length > 1) {
@@ -623,20 +587,13 @@ mpd.sidebar.TagEditor = Ext.extend(Ext.grid.PropertyGrid, {
 			}, this)
 		} else if (len > 0) {
 			data = recs[0].data
-			src['('+data.type+')'] = data[data.type]
+			src['(file)'] = data.file
 			Ext.each(mpd.TAG_TYPES, function (key) {
-				src[key] = data[key.toLowerCase()]
+				key = key.toLowerCase()
+				src[key] = data[key]
 			})
 		}
-		
-		// Reset state and load new values
-		this.btnSave.disable()
-		this.btnReset.disable()
-		this.changes = {}
 		this.setSource(src)
-	},
-    reloadRecords: function() {
-		this.loadRecords(this.records)
-	}	
+	}      
 })
 Ext.reg('tag-editor', mpd.sidebar.TagEditor)
