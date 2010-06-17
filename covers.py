@@ -139,9 +139,7 @@ class CoverSearch():
             coverpath = p.replace("{folder}", path)
             coverpath = coverpath.replace("{artist}", artist)
             coverpath = coverpath.replace("{album}", album)
-            print "Checking:  "+coverpath
             if os.path.exists(coverpath):
-                print "Cover found locally at:  "+coverpath
                 ext = coverpath.split(".")[-1]
                 covername = '%s - %s.%s'  % (artist, album, ext)
                 cover_destination = os.path.join(self.cover_dir, covername)

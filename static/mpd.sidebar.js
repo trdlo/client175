@@ -89,9 +89,7 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
             this.delayedRecord = null
             var d = rec.data, old = this.record.data
             if (d.type != 'file') return null
-            d.artist = d.albumartist || d.artist
-            var old_artist = old.albumartist || old.artist
-            if ((d.artist != old_artist) || (d.album != old.album)) {
+            if ((d.artist != old.artist) || (d.album != old.album)) {
                 d.cover_url = '../covers?' + Ext.urlEncode({
                     file: d.file,
                     artist: d.artist,
