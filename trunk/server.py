@@ -27,21 +27,26 @@ from datetime import datetime, timedelta
 import mpd_proxy2 as mpd_proxy
 from mpd import MPDError
 from covers import CoverSearch
+import metadata
+from metadata._base import NotReadable, NotWritable
 
-mpd = mpd_proxy.Mpd()
 LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
 COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
-cs = CoverSearch(COVERS_DIR)
-
 cherrypy.config.update( {
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
 cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
+LOCAL_COVERS = cherrypy.config.get('local_covers', None)
+if LOCAL_COVERS:
+    for i in range(len(LOCAL_COVERS)):
+        LOCAL_COVERS[i] = os.path.expanduser(LOCAL_COVERS[i])
 MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
+MUSIC_DIR = os.path.expanduser(MUSIC_DIR)
 
-import metadata
-from metadata._base import NotReadable, NotWritable
+mpd = mpd_proxy.Mpd()
+cs = CoverSearch(COVERS_DIR, LOCAL_COVERS)
+
 
 class Root:
 
@@ -104,8 +109,19 @@ class Root:
     add.exposed = True
 
 
-    def covers(self, artist, album=None):
-        image = cs.find(artist, album)
+    def covers(self, **kwargs):
+        f = kwargs.get('file')
+        path = None
+        artist = kwargs.get('artist')
+        album = kwargs.get('album')
+        if f:
+            path = os.path.join(MUSIC_DIR, f)
+            path = os.path.dirname(path)
+            if not artist:
+                _file = mpd.lsinfo(f)
+                artist = _file.get('artist')
+                album = _file.get('album')
+        image = cs.find(path, artist, album)
         u = cherrypy.url().split('covers')[0]
         if image:
             url = u+'static/covers/'+image
@@ -314,6 +330,7 @@ class Root:
             a = {
                 'album': g('album', 'Unknown'),
                 'artist': g('albumartist', g('artist', 'Unknown')),
+                'file': g('file'),
                 'cls': 'album-group-start',
                 'id': 'aa0'
             }       
@@ -327,6 +344,7 @@ class Root:
                     a = {
                         'album': g('album', 'Unknown'),
                         'artist': g('albumartist', g('artist', 'Unknown')),
+                        'file': g('file'),
                         'cls': 'album-group-start',
                         'id': 'aa%d' % i
                     }
@@ -480,7 +498,13 @@ class Root:
 
 
 
-cherrypy.quickstart(Root())
 # Uncomment the following to use your own favicon instead of CP's default.
 #favicon_path = os.path.join(LOCAL_DIR, "favicon.ico")
 #root.favicon_ico = tools.staticfile.handler(filename=favicon_path)
+
+shost = cherrypy.config.get('server.socket_host')
+sport = cherrypy.config.get('server.socket_port')
+if shost == '0.0.0.0':
+    shost = 'localhost'
+print "Server Ready.  Client175 is available at:  http://%s:%s" % (shost, sport)
+cherrypy.quickstart(Root())
