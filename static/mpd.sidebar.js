@@ -93,6 +93,7 @@ mpd.sidebar.InfoPanel = Ext.extend(Ext.Panel, {
             var old_artist = old.albumartist || old.artist
             if ((d.artist != old_artist) || (d.album != old.album)) {
                 d.cover_url = '../covers?' + Ext.urlEncode({
+                    file: d.file,
                     artist: d.artist,
                     album: d.album
                 })
@@ -331,7 +332,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                         '<tpl if="!title">' +
 							'<dt style="width:100%"><em unselectable="on">'+
 							'<div class="x-toolbar {cls}" style="height:68px;">' +
-								'<img src="../covers?{[Ext.urlEncode({artist:values.artist,album:values.album})]}">' +
+								'<img src="../covers?{[Ext.urlEncode({file:values.file,artist:values.artist,album:values.album})]}">' +
 								'<b>{album}</b><tpl if="!album &amp;&amp; !artist">&nbsp;</tpl>' +
 								'<tpl if="album &gt; &quot;&quot; &amp;&amp; artist &gt; &quot;&quot;"><br></tpl>' +
 								'<i>{artist}</i>' +

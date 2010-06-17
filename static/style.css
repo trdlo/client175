@@ -94,6 +94,9 @@ div.add:hover {
 .icon-home {
 	background: url("icons/fugue/home.png") no-repeat !important;
 }
+.icon-info {
+	background: url("icons/fugue/information-frame.png") no-repeat !important;
+}
 .icon-next {
 	background: url("images/next.png") no-repeat !important;
 	height: 22px !important;

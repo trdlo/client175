@@ -1,6 +1,7 @@
 Ext.namespace('mpd.browser')
 mpd.PAGE_LIMIT = 200
-mpd.TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Name", "Genre", "Date", "Composer", "Performer", "Disc"]
+mpd.TAG_TYPES = ["Artist", "Album", "AlbumArtist", "Title", "Track", "Genre", "Date", "Composer", "Performer", "Disc"]
+mpd.TAG_TYPES_LOWER = ["artist", "album", "albumartist", "title", "track", "genre", "date", "composer", "performer", "disc"]
 mpd.EXTRA_FIELDS = []
 
 
@@ -29,7 +30,7 @@ mpd.browser.renderIcon = function(val, meta, rec, row, col, store) {
     return '<div class="icon icon-'+val+'"/>'
 }
 mpd.browser.renderIconWide = function(val, meta, rec, row, col, store) {
-    return '<div class="icon icon-'+val+'" style="margin-left:24px !important"/>'
+    return '<div class="icon icon-'+val+'" style="margin-left:18px !important"/>'
 }
 
 
@@ -86,7 +87,6 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'calbum', header: "Album", dataIndex: 'album'},
 			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
-			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 60,	hidden: true},
 			{id: 'ctime', header: "Time", width: 60, dataIndex: 'time',
 				renderer: function(val, meta, rec){
 					return rec.data.ptime
@@ -144,6 +144,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 				items: ['Filter: ', ' ', this.filter, '-']
 			}),
             listeners: {
+                'beforestaterestore': function() {return false}, // handled on column model change
                 'cellmousedown': function(g, rowIdx, colIdx, e) {
                     var cm = self.getColumnModel()
                     var col = cm.getColumnId(colIdx)
@@ -551,34 +552,32 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         this._editButtons[1].disable()
         this._editButtons[2].disable()
 		var recs = this.store.getModifiedRecords()
-        this.changes = 0
+        this.changes = recs.length
         Ext.each(recs, function(item) {
-            if (item.dirty) {
-                this.changes++
-                var data = Ext.apply({'id': item.data.file}, item.getChanges())
-                Ext.Ajax.request({
-                    url: '../edit',
-                    params: data,
-                    record: item,
-                    success: function(response, opts) {
-                        opts.record.commit()
-                        if (--this.changes < 1) this.hideEditButtons()
-                    },
-                    failure: function(response, opts) {
-                        opts.record.reject()
-                        Ext.Msg.alert('Error', response.responseText)
-                        if (--this.changes < 1) this.hideEditButtons()
-                    },
-                    scope: this
-                })
-            }
+            var data = {'id': item.data.file}
+            Ext.copyTo(data, item.data, mpd.TAG_TYPES_LOWER)
+            Ext.Ajax.request({
+                url: '../edit',
+                params: data,
+                record: item,
+                success: function(response, opts) {
+                    opts.record.commit()
+                    if (--this.changes < 1) this.hideEditButtons()
+                },
+                failure: function(response, opts) {
+                    opts.record.reject()
+                    Ext.Msg.alert('Error', response.responseText)
+                    if (--this.changes < 1) this.hideEditButtons()
+                },
+                scope: this
+            })
         }, this)
 	},
     _currentView: '',
     _fullColModel: null,
     _homeColModel: new Ext.grid.ColumnModel({
 		columns: [
-			{id: 'cicon', header: "Icon", align: 'right',  width: 45, 
+			{id: 'hcicon', header: "Icon", align: 'right',  width: 45, 
 				dataIndex: 'type', renderer: mpd.browser.renderIconWide},
 			{id: 'ctitle', header: "Statistics", dataIndex: 'title'}
 		]
@@ -620,7 +619,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
          * I also want to pick up changes that might have been made in 
          * other tabs while this column model was not in use.
          **/
-        var state = Ext.state.Manager.get('mpd_dbbrowser_grid')
+        var state = Ext.state.Manager.get(this.stateId)
         var cm = this._fullColModel,
             cs = state.columns
         if(cs){
@@ -638,7 +637,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
             }
         }
         
-		this.reconfigure(this.store, this._fullColModel)
+		this.reconfigure(this.store, cm)
 		this._currentView = 'full'
 	},
 	showHomeView: function() {

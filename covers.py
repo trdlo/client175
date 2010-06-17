@@ -23,7 +23,7 @@
 #       Exaile (http://www.exaile.org/).
 
 
-import hashlib, re, urllib, os, time
+import hashlib, re, urllib, os, time, shutil, threading
 from xml.etree import ElementTree as ET
 from datetime import datetime, timedelta
 
@@ -34,7 +34,8 @@ class CoverSearch():
         artist image from last.fm will be used.
     """
 
-    def __init__(self, cover_dir=None):
+    def __init__(self, cover_dir=None, local_covers=[]):
+        self.local_covers = local_covers
         if cover_dir is not None:
             self.cover_dir = cover_dir
         else:
@@ -51,6 +52,7 @@ class CoverSearch():
         self.urlFM_artist = "http://ws.audioscrobbler.com/1.0/artist/%s/similar.xml"
         self.regexFM_artist = re.compile('picture\=\"([^\"]*)\"', re.IGNORECASE)
 
+        self.lock = threading.RLock()
         self.delta = timedelta(seconds=1)
 
 
@@ -65,11 +67,15 @@ class CoverSearch():
                 time.sleep(0.1)
                 n = datetime.utcnow()
                 dif = n - self.__dict__[timeVar]
-        self.__dict__[timeVar] = datetime.utcnow()
+        try:
+            self.lock.acquire()
+            self.__dict__[timeVar] = datetime.utcnow()
+        finally:
+            self.lock.release()
 
 
     def _findMusicBrainz(self, vars):
-        self._delay('lat_MB_lookup')
+        self._delay('last_MB_lookup')
         data = urllib.urlopen(self.urlMB % vars).read()
         m = self.regexMB.search(data)
         if not m:
@@ -88,7 +94,7 @@ class CoverSearch():
     
 
     def _findLastFM_album(self, vars):
-        self._delay('lat_FM_lookup')
+        self._delay('last_FM_lookup')
         data = urllib.urlopen(self.urlFM % vars).read()
         x = ET.XML(data)
         if not x:
@@ -108,34 +114,46 @@ class CoverSearch():
                 h.close()
                 if hashlib.sha1(data).hexdigest() != "57b2c37343f711c94e83a37bd91bc4d18d2ed9d5":
                     return data
-                else:
-                    print 'LASTFM SEARCH: Blacklisted image returned.'
 
         return False
 
 
     def _findLastFM_artist(self, vars):
-        self._delay('lat_FM_lookup')
+        self._delay('last_FM_lookup')
         data = urllib.urlopen(self.urlFM_artist % vars['artist']).read()
         m = self.regexFM_artist.search(data)
-        if not m:
-            return False
-        else:
+        if m:
             image = m.group(1)
             if image.lower().endswith('.gif'):
                 return False
             h = urllib.urlopen(image)
             data = h.read()
             h.close()
-            return data
+            if hashlib.sha1(data).hexdigest() != "57b2c37343f711c94e83a37bd91bc4d18d2ed9d5":
+                return data
+        return False
             
 
-    def find(self, artist=None, album=None):
+    def find(self, path='', artist='', album=''):
+        for p in self.local_covers:
+            coverpath = p.replace("{folder}", path)
+            coverpath = coverpath.replace("{artist}", artist)
+            coverpath = coverpath.replace("{album}", album)
+            print "Checking:  "+coverpath
+            if os.path.exists(coverpath):
+                print "Cover found locally at:  "+coverpath
+                ext = coverpath.split(".")[-1]
+                covername = '%s - %s.%s'  % (artist, album, ext)
+                cover_destination = os.path.join(self.cover_dir, covername)
+                if not os.path.exists(cover_destination):
+                    shutil.copy2(coverpath, cover_destination)
+                return covername
+                
         if not artist:
             return False
             
-        if album:
-            covername = '%s - %s.jpg' % (artist, album)
+        if album:                    
+            covername = '%s - %s.jpg' % (artist, album)                    
             lookups = [
                 self._findMusicBrainz,
                 self._findLastFM_album,

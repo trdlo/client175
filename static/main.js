@@ -56,20 +56,31 @@ mpd.init = function(){
 			{
 				region: 'east',
 				xtype: 'panel',
-				layout: 'accordion',
-				id: 'mpd-sidebar',
+                id: 'mpd-sidebar-wrapper',
 				split: true,
-				minWidth: 200,
-				width: 300,
-				layoutConfig: {
-					fill: true,
-					hideCollapseTool: true,
-					activeOnTop: true
-				},
-				defaults: {
-					toggleCollapse : smartToggle
-				},
-				items: sidebarItems
+                layout: 'fit',
+                frame: false,
+                header: false,
+                iconCls: 'icon-info',
+                title: ' Info Panel',
+                plugins: [Ext.ux.PanelCollapsedTitle],
+                collapsible: true,
+                minWidth: 200,
+                width: 300,
+                items: {
+                    xtype: 'container',
+                    layout: 'accordion',
+                    id: 'mpd-sidebar',
+                    layoutConfig: {
+                        fill: true,
+                        hideCollapseTool: true,
+                        activeOnTop: true
+                    },
+                    defaults: {
+                        toggleCollapse : smartToggle
+                    },
+                    items: sidebarItems
+                }
 			},
             {
                 layout: 'fit',
@@ -104,8 +115,10 @@ Ext.onReady(function(){
 			mpd.TAG_TYPES.remove("Name")			
 			var fields = Ext.pluck(mpd.dbFields(), "name")
 			Ext.each(fields, function(v){ mpd.events.addEvents(v) })
+            mpd.TAG_TYPES_LOWER = []
 			Ext.each(mpd.TAG_TYPES, function(item) {
 				var tag = item.toLowerCase()
+                mpd.TAG_TYPES_LOWER.push(tag)
 				if (fields.indexOf(tag) == -1) {
 					mpd.EXTRA_FIELDS.push({'name': tag, 'header': item})
 					mpd.events.addEvents(tag)
