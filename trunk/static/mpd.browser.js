@@ -623,19 +623,21 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
          * I also want to pick up changes that might have been made in 
          * other tabs while this column model was not in use.
          **/
+        var cm = this._fullColModel
         var state = Ext.state.Manager.get(this.stateId)
-        var cm = this._fullColModel,
-            cs = state.columns
-        if(cs){
-            for(var i = 0, len = cs.length; i < len; i++){
-                s = cs[i];
-                c = cm.getColumnById(s.id);
-                if(c){
-                    c.hidden = s.hidden;
-                    c.width = s.width;
-                    oldIndex = cm.getIndexById(s.id);
-                    if(oldIndex != i){
-                        cm.moveColumn(oldIndex, i);
+        if (state) {
+            var cs = state.columns
+            if (cs) {
+                for(var i = 0, len = cs.length; i < len; i++){
+                    s = cs[i];
+                    c = cm.getColumnById(s.id);
+                    if(c){
+                        c.hidden = s.hidden;
+                        c.width = s.width;
+                        oldIndex = cm.getIndexById(s.id);
+                        if(oldIndex != i){
+                            cm.moveColumn(oldIndex, i);
+                        }
                     }
                 }
             }
