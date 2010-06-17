@@ -236,6 +236,28 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, config)
         mpd.browser.GridPanel.superclass.constructor.apply(this, arguments);
 
+        this._editToolbar = new Ext.Toolbar({
+            hidden: true,
+            items: [
+                '->',
+                {
+                    xtype: 'button',
+                    text: 'Clear Changes',
+                    iconCls: 'icon-cancel',
+                    handler: this.rejectChanges,
+                    scope: this
+                }, '-',
+                {
+                    xtype: 'button',
+                    text: 'Save Changes',
+                    iconCls: 'icon-save',
+                    handler: this.saveChanges,
+                    scope: this
+                }
+            ]
+        })
+        this.add(this._editToolbar)
+        
         mpd.events.on('playlists', this.playlists_refresh, this)
         mpd.events.on('playlist', this.db_refresh, this)
         mpd.events.on('db_update', this.db_refresh, this, {buffer: 1000})
@@ -513,44 +535,26 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 		var row = g.getStore().getAt(rowIdx).data
 		this.goTo(row)
 	},
-    _editButtons: [],
     hideEditButtons: function() {
-        if (this._editButtons.length == 0) return true
-        var tb = this.getTopToolbar();
-        Ext.each(this._editButtons, tb.remove, tb)
-        this._editButtons = []
-        tb.items.each(function(item){ item.show() })
-        tb.doLayout()
+        if (!this._editToolbar.isVisible()) return true
+        this._editToolbar.hide()
+        this.getTopToolbar().show()
+        this.doLayout(true)
         this.tagLoader.delay(0)
     },
     showEditButtons: function() {
-        if (this._editButtons.length > 0) return true
-        var tb = this.getTopToolbar();
-        tb.items.each(function(item){ item.hide() })
-        this._editButtons.push(tb.add("->"))
-        this._editButtons.push(tb.addButton({
-            text: 'Clear Changes',
-            iconCls: 'icon-cancel',
-            handler: this.rejectChanges,
-            scope: this
-        }))
-        this._editButtons.push(tb.addSeparator())
-        this._editButtons.push(tb.addButton({
-            text: 'Save Changes',
-            iconCls: 'icon-save',
-            handler: this.saveChanges,
-            scope: this
-        }))
-        tb.doLayout()
+        if (this._editToolbar.isVisible()) return true
+        this.getTopToolbar().hide()
+        this._editToolbar.enable()
+        this._editToolbar.show()
+        this.doLayout(true)
     },
     rejectChanges: function() {
         this.store.rejectChanges()
         this.hideEditButtons()
     },
     saveChanges: function() {
-        var tb = this.getTopToolbar();
-        this._editButtons[1].disable()
-        this._editButtons[2].disable()
+        this._editToolbar.disable()
 		var recs = this.store.getModifiedRecords()
         this.changes = recs.length
         Ext.each(recs, function(item) {
