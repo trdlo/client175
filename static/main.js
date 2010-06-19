@@ -1,5 +1,4 @@
 Ext.namespace('mpd')
-var SM = Ext.state.Manager
 
 function smartToggle(animate){
 	if (this.collapsed) {
@@ -16,12 +15,9 @@ function smartToggle(animate){
 }
 
 
-mpd.init = function(){
-	var thirtyDays = new Date(new Date().getTime()+(1000*60*60*24*30))
-	SM.setProvider(new Ext.state.CookieProvider({expires: thirtyDays}))
-	
+mpd.init = function(){	
 	var sidebarItems = []
-	var playlistLocation = SM.get('playlistLocation', 'sidebar')
+	var playlistLocation = Ext.state.Manager.get('playlistLocation', 'sidebar')
 	if (playlistLocation == 'sidebar') {
 		sidebarItems.push({
 			xtype: 'playlist_sidebar',
