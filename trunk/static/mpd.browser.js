@@ -46,7 +46,7 @@ Ext.override(Ext.grid.GridView, {
 mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
     constructor: function(config) {
         var self = this
-        this.cwd = ''
+        this.cwd = null
         this.config = config || {}
         var cmd = this.config.cmd || ''  
         if (!this.store) {
@@ -112,10 +112,10 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         Ext.apply(this, {
             stateId: 'mpd_dbbrowser_grid',
             stateful: true,
+            stateEvents: ['columnmove', 'columnresize'],
             store: this.store,
             region: 'center',
             columns: [{id: 'ctitle', header: '', dataIndex: 'none'}],
-            //cm: this._fullColModel,
             autoExpandColumn: 'ctitle',
             autoExpandMin: 150,
             autoExpandMax: 400,
@@ -144,7 +144,10 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 				items: ['Filter: ', ' ', this.filter, '-']
 			}),
             listeners: {
-                'beforestaterestore': function() {return false}, // handled on column model change
+                'beforestaterestore': function() { return false }, // handled on column model change
+                'beforestatesave': function(grid, state) {
+                    return (grid._currentView == 'full')
+                },
                 'cellmousedown': function(g, rowIdx, colIdx, e) {
                     var cm = self.getColumnModel()
                     var col = cm.getColumnId(colIdx)
@@ -310,6 +313,12 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			}
 		}
 	},
+    // Override Grid's builtin initStateEvents, we specifically want to capture state
+    // for the fullColModel ONLY.
+    initStateEvents : function(){
+        Ext.grid.GridPanel.superclass.initStateEvents.call(this);
+        this.mon(this._fullColModel, 'hiddenchange', this.saveState, this, {delay: 100});
+    },
 	playlists_refresh: function(){
 		if (this.cwd == 'playlist:') this.db_refresh()
 	},
