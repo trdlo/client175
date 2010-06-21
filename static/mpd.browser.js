@@ -933,12 +933,12 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                 'afterrender': function (tree) {
                     mpd.events.on('db_update', function(){
                         tree.root.eachChild(function(node){
-                            if (node.isLoaded()) node.reload()
-                        }, tree, {buffer: 1000})
-                    })
+                            if (node.isLoaded()) node.reload(Ext.emptyFn)
+                        })
+                    }, this, {buffer: 1000})
                     mpd.events.on('playlists', function(){
                         var node = tree.root.findChild('id', 'playlist:')
-                        if (node.isLoaded()) node.reload()
+                        if (node.isLoaded()) node.reload(Ext.emptyFn)
                     })
                 },
                 'contextmenu': function(node, event) {

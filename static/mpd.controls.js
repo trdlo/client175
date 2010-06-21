@@ -249,15 +249,16 @@ mpd.Controls = Ext.extend(Ext.Container, {
                 pbarTime.hide()
                 sliderTime.show()
                 pbarTime.ownerCt.doLayout()
-            })
+            }, Ext.emptyFn)
         })
         
         sliderTime.on("afterrender", function(){
             sliderTime.el.hover(Ext.emptyFn, function(){
-                if (sliderTime.dragging) return false
-                sliderTime.hide()
-                pbarTime.show()
-                sliderTime.ownerCt.doLayout()
+                if (!sliderTime.dragging) {
+                    sliderTime.hide()
+                    pbarTime.show()
+                    sliderTime.ownerCt.doLayout()
+                }
             })
         })
         
