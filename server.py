@@ -143,6 +143,8 @@ class Root:
                 http://localhost:8080/list/album/artist/David%20Bowie
         """
         try:
+            if len(args) == 1:
+                args = args[0]
             result = mpd.execute(args)
         except MPDError, e:
             raise cherrypy.HTTPError(501, message=str(e))
@@ -201,53 +203,54 @@ class Root:
         gl = len(mpd.execute('list genre'))
         pl = len(mpd.listplaylists())
         tm = mpd_proxy.prettyDuration(mpd.state['db_playtime'])
-        tmp = '<div class="db-count"><b>%s:</b><span>%s</span></div>'
         result = {}
-        result['totalCount'] = 4
         result['data'] = [
             {
-                'title': tmp % ('Songs', mpd.state['songs']),
+                'title': 'Songs',
                 'type': 'directory',
                 'directory': '/',
+                'ptime': mpd.state['songs'],
                 'id': 'directory:'
             },
             {
-                'title': tmp % ('Total Playtime', tm),
+                'title': 'Total Playtime',
                 'type': 'time',
                 'directory': '/',
+                'ptime': tm,
                 'id': 'time:'
             },
             {
-                'title': tmp % ('Albums', mpd.state['albums']),
+                'title': 'Albums',
                 'type': 'album',
-                'album': '',
+                'ptime': mpd.state['albums'],
                 'id': 'album:'
             },
             {
-                'title': tmp % ('Artists', mpd.state['artists']),
+                'title': 'Artists',
                 'type': 'artist',
-                'artist': '',
+                'ptime': mpd.state['artists'],
                 'id': 'artist:'
             },
             {
-                'title': tmp % ('Dates', dl),
+                'title': 'Dates',
                 'type': 'date',
-                'artist': '',
+                'ptime': dl,
                 'id': 'date:'
             },
             {
-                'title': tmp % ('Genres', gl),
+                'title': 'Genres',
                 'type': 'genre',
-                'artist': '',
+                'ptime': gl,
                 'id': 'genre:'
             },
             {
-                'title': tmp % ('Playlists', pl),
+                'title': 'Playlists',
                 'type': 'playlist',
-                'playlist': '',
+                'ptime': pl,
                 'id': 'playlist:'
             }
         ]
+        result['totalCount'] = len(result['data'])
         return json.dumps(result)
     home.exposed = True
 
@@ -359,6 +362,18 @@ class Root:
         else:
             return json.dumps(data)
     playlistinfoext.exposed = True
+
+
+    def protocol(self, cmd):
+        """
+        Run mpd protocol command as string and return results pretty printed.
+        """
+        try:
+            result = mpd.execute(cmd)
+        except MPDError, e:
+            raise cherrypy.HTTPError(501, message=str(e))
+        return json.dumps(result, sort_keys=True, indent=4)
+    protocol.exposed = True
                 
 
     def query(self, cmd, start=0, limit=0, sort='', dir='ASC', **kwargs):
@@ -506,5 +521,6 @@ shost = cherrypy.config.get('server.socket_host')
 sport = cherrypy.config.get('server.socket_port')
 if shost == '0.0.0.0':
     shost = 'localhost'
-print "Server Ready.  Client175 is available at:  http://%s:%s" % (shost, sport)
+print "Server Ready."
+print "Client175 is available at:  http://%s:%s" % (shost, sport)
 cherrypy.quickstart(Root())

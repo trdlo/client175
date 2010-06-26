@@ -87,7 +87,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'calbum', header: "Album", dataIndex: 'album'},
 			{id: 'cartist', header: "Artist", dataIndex: 'artist'},
-			{id: 'ctime', header: "Time", width: 60, dataIndex: 'time',
+			{id: 'ctime', header: "Time", width: 60, dataIndex: 'time', align: 'right',
 				renderer: function(val, meta, rec){
 					return rec.data.ptime
 				}
@@ -172,16 +172,19 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
                                     switch (row.type) {
                                         case 'file': 
                                             mpd.cmd( ['add', row.file] )
-                                            rec.set('pos', "..")
+                                            rec['pos'] = ".."
+                                            rec.commit()
                                             break;
                                         case 'directory': 
                                             mpd.cmd( ['add', row.directory] )
-                                            rec.set('pos', "..")
+                                            rec['pos'] = ".."
+                                            rec.commit()
                                             break;
                                         default:
 											if (row[row.type] > "") {
 												mpd.cmd( ['add', row.type, row.title] )
-												rec.set('pos', "..")
+                                                rec['pos'] = ".."
+                                                rec.commit()
 											}
                                     }                                        
                                 }
@@ -592,7 +595,8 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 		columns: [
 			{id: 'hcicon', header: "Icon", align: 'right',  width: 45, 
 				dataIndex: 'type', renderer: mpd.browser.renderIconWide},
-			{id: 'ctitle', header: "Statistics", dataIndex: 'title'}
+			{id: 'ctitle', header: "Statistics", dataIndex: 'title'},
+			{id: 'cval', header: "Songs/Time", dataIndex: 'ptime', width: 250}
 		]
     }),
     _simpleColModel: new Ext.grid.ColumnModel({
@@ -610,7 +614,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			{id: 'cicon', header: "Icon", width: 22, dataIndex: 'type', renderer: mpd.browser.renderIcon},
 			{id: 'ctitle', header: "Title", dataIndex: 'title'},
 			{id: 'csongs', header: 'Songs',	dataIndex: 'songs',	width: 80},
-			{id: 'ctime', header: "Time", width: 80, dataIndex: 'time',
+			{id: 'ctime', header: "Time", width: 80, dataIndex: 'time', align: 'right',
 				renderer: function(val, meta, rec){
 					return rec.data.ptime
 				}

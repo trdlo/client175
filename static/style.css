@@ -271,10 +271,3 @@ a.x-tree-node-anchor {
 .song-count {
 	color: #808080 !important;
 }
-div.db-count {
-	position: relative;
-}
-div.db-count > span {
-	position: absolute;
-	left: 90px;
-}
