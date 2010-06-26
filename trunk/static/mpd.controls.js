@@ -10,6 +10,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
             y: 33,
             anchor: '99%',
             hidden: true,
+            hideMode: 'visibility',
             minValue: 0,
             maxValue: 100,
             decimalPrecision: 2,

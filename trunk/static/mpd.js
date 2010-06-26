@@ -98,15 +98,20 @@ mpd.checkStatus = new Ext.util.DelayedTask(function() {
  
 mpd.cmd = function (aCmd, callBack) {
     var url = ".."
-    Ext.each(aCmd, function(item) {
-		url += "/" + encodeURIComponent(item)
-	})
+    if (Ext.isArray(aCmd)) {
+        Ext.each(aCmd, function(item) {
+            url += "/" + encodeURIComponent(item)
+        })
+    } else {
+        url = "../protocol/" + encodeURIComponent(aCmd)
+    }
+    
     Ext.Ajax.request({
         url: url,
         success: function(response, opts) {
 			if (Ext.isFunction(callBack)) {
 				d = Ext.util.JSON.decode(response.responseText)
-				callBack(d)
+				callBack(d, aCmd, response.responseText)
 			}
         },
         failure: function (req, opt) {

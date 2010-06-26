@@ -89,7 +89,7 @@ class _Mpd_Poller(threading.Thread):
     """
     A simplified version of the _MPD_Instance which does nothing but
     run the idle command and force a status sync when needed.  This
-    replaces the need to poll mpd.
+    replaces the need to poll mpd on a timer.
     """
     
     def __init__(self, host=None, port=None, password=None):
