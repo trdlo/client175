@@ -8,10 +8,17 @@ A running MPD daemon (at least version 14.0) and python 2.6 are all that you nee
 
 
 ==Installation and Setup==
-No releases are available yet, but the current version in the repository is stable.  To get started:
+
+===Install from SVN (recomended)===
 
   * Checkout the source from svn:  {{{svn checkout http://client175.googlecode.com/svn/trunk/ client175}}}
   * CD into the new directory:  {{{cd client175}}}
   * Edit the music_directory option in *site.conf* to point to your music directory, this is required to edit tags.
   * Start the server:  {{{python server.py}}}
+  * Open a web browser to http://localhost:8080/static/index.html
+
+===Install Packaged Release===
+  * Download and extract the latest package from the Downloads section.
+  * Edit site.conf
+  * Open a terminal, cd into the directory you extracted to, and run the server:  {{{python server.py}}}
   * Open a web browser to http://localhost:8080/static/index.html
