@@ -386,13 +386,10 @@ class Root:
             return self.tree(cmd, node, m)
             
         start = int(start)
-        qstart = datetime.utcnow()
         if sort:
             data = mpd.execute_sorted(cmd, sort, dir=='DESC')
         else:
             data = mpd.execute(cmd)
-        diff = qstart - datetime.utcnow()
-        print "%d ms to run command: %s - SORT %s %s." % ((diff.microseconds / 1000), cmd, sort, dir)
             
         filter = kwargs.get('filter')
         if filter:
@@ -419,10 +416,12 @@ class Root:
             data = result['data']
             
         for i in range(len(data)):
-            if data[i]['type'] == 'file':
-                pl = mpd.playlist.getByFile(data[i]['file'])
+            d = data[i]
+            if d['type'] == 'file':
+                pl = mpd.playlist.getByFile(d['file'])
                 if pl:
-                    data[i] = pl
+                    d['id'] = pl['id']
+                    d['pos'] = pl['pos']
 
         return json.dumps(result)
     query.exposed = True

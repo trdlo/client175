@@ -67,8 +67,9 @@ class _MpdPlaylist(list):
         if self.files is None:
             plstart = datetime.utcnow()
             self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
-            diff = plstart - datetime.utcnow()
-            print "%d ms to build playlist filename index." % (diff.microseconds / 1000)
+            diff = datetime.utcnow() - plstart
+            ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+            print "%d ms to build playlist filename index." % ms
         index = self.files.get(fpath, None)
         if index is None:
             return None
@@ -84,7 +85,9 @@ class _MpdPlaylist(list):
         else:
             del self[new_length:]
         for change in changes:
-            self[int(change['pos'])-1] = change
+            p = int(change['pos'])
+            change['pos'] = p + 1
+            self[p] = change
 
 
 
@@ -216,10 +219,19 @@ class _Mpd_Instance:
 
 
     def _extendDbResult(self, data):
+        xstart = datetime.utcnow()
         for item in data:
             keys = item.keys()
             if 'file' in keys:
-                item = self._extendFile(item)
+                p = item.get('pos')
+                if p is None:
+                    item['id'] = "file:" + item['file']
+                else:
+                    item['pos'] = int(p) + 1
+                item['type'] = 'file'
+                item['ptime'] = hmsFromSeconds(item.get('time', 0))
+                if not item.get('title'):
+                    item['title'] = item['file'].split('/')[-1]
             elif 'directory' in keys:
                 item['type'] = 'directory'
                 item['title'] = item['directory'].split('/')[-1]
@@ -233,20 +245,10 @@ class _Mpd_Instance:
                 item['title'] = item[keys[0]]
                 item['id'] = keys[0] + ":" + item[keys[0]]
                 
+        diff = datetime.utcnow() - xstart
+        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+        print "%d ms to extend database result for %d items" % (ms, len(data))
         return data
-
-
-    def _extendFile(self, item):
-        p = item.get('pos')
-        if p is None:
-            item['id'] = "file:" + item['file']
-        else:
-            item['pos'] = int(p) + 1
-        item['type'] = 'file'
-        item['ptime'] = hmsFromSeconds(item.get('time', 0))
-        if not item.get('title'):
-            item['title'] = item['file'].split('/')[-1]
-        return item
 
 
     def _safe_cmd(self, fn, args):
@@ -300,6 +302,7 @@ class _Mpd_Instance:
         command = ['list', 'album', 'artist', 'David Bowie']
         """
 
+        xstart = datetime.utcnow()
         if isinstance(command, str) or isinstance(command, unicode):
             cached = self._dbcache.get(command)
             if cached is not None:
@@ -327,6 +330,10 @@ class _Mpd_Instance:
         result = self.__getattr__(cmd)(*cmdlist)
         if cmd in self._cache_cmds:
             self._dbcache[command] = result
+            
+        diff = datetime.utcnow() - xstart
+        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+        print "%d ms to run command: %s  (includes extending database results)" % (ms, command)
         return result
 
 
@@ -340,12 +347,17 @@ class _Mpd_Instance:
             return cached
 
         result = self.execute(command)
+        xstart = datetime.utcnow()
         useLower = False
         if sortKey not in ('time', 'pos', 'songs'):
             useLower = True
         sorted_result = sorted(result, fieldSorter(sortKey, useLower), reverse=sortReverse)
         if command in self._cache_cmds:
             self._dbcache[key] = sorted_result
+            
+        diff = datetime.utcnow() - xstart
+        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+        print "%d ms to sort data for: %" % (ms, key)
         return sorted_result
 
 
@@ -522,13 +534,16 @@ class _Mpd_Instance:
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
                 plstart = datetime.utcnow()
-                changes = [self._extendFile(x) for x in self.plchanges(plver)]
-                diff = plstart - datetime.utcnow()
-                print "%d ms to get playlist updates." % (diff.microseconds / 1000)
+                changes = self.plchanges(plver)
+                diff = datetime.utcnow() - plstart
+                ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+                print "%d ms to get playlist updates." % ms
+                
                 plstart = datetime.utcnow()
                 self.playlist.update(changes, ln)
-                diff = plstart - datetime.utcnow()
-                print "%d ms to update cached playlist." % (diff.microseconds / 1000)
+                diff = datetime.utcnow() - plstart
+                ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
+                print "%d ms to update cached playlist." % ms
                 self.playlist.version = s['playlist']
             
             if 'stored_playlist' in changes:
@@ -553,27 +568,17 @@ class _Mpd_Instance:
             return self.state
 
 
-def hmsFromSeconds(sec):
-    sec = int(sec)
-    if not sec:
+def hmsFromSeconds(seconds):
+    seconds = int(seconds)
+    if not seconds:
         return ''
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    if h == 0:
+        return "%d:%02d" % (m, s)
+    else:
+        return "%d:%02d:%02d" % (h, m, s)
 
-    _str = ''
-    h = int(sec/3600)
-    sec -= h * 3600
-    if h:
-        _str = str(h) + ':'
-
-    m = int(sec/60)
-    sec -= m * 60
-    if _str and m < 10:
-        _str += '0'
-    _str += str(m) + ':'
-
-    if _str and sec < 10:
-        _str += '0'
-    _str += str(sec)
-    return _str
 
 
 def prettyDuration(sec):

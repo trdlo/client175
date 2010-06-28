@@ -785,7 +785,6 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         })
         var g = t.get(0)
         g.showFullView()
-        g.getStore().load({params:{start:0, limit:200}})
         this.setActiveTab(t)
         return t
     },
