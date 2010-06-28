@@ -386,10 +386,13 @@ class Root:
             return self.tree(cmd, node, m)
             
         start = int(start)
+        qstart = datetime.utcnow()
         if sort:
             data = mpd.execute_sorted(cmd, sort, dir=='DESC')
         else:
             data = mpd.execute(cmd)
+        diff = qstart - datetime.utcnow()
+        print "%d ms to run command: %s - SORT %s %s." % ((diff.microseconds / 1000), cmd, sort, dir)
             
         filter = kwargs.get('filter')
         if filter:

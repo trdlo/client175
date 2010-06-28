@@ -65,7 +65,10 @@ class _MpdPlaylist(list):
 
     def getByFile(self, fpath):
         if self.files is None:
+            plstart = datetime.utcnow()
             self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
+            diff = plstart - datetime.utcnow()
+            print "%d ms to build playlist filename index." % (diff.microseconds / 1000)
         index = self.files.get(fpath, None)
         if index is None:
             return None
@@ -518,8 +521,14 @@ class _Mpd_Instance:
                 ln = int(s['playlistlength'])
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
+                plstart = datetime.utcnow()
                 changes = [self._extendFile(x) for x in self.plchanges(plver)]
+                diff = plstart - datetime.utcnow()
+                print "%d ms to get playlist updates." % (diff.microseconds / 1000)
+                plstart = datetime.utcnow()
                 self.playlist.update(changes, ln)
+                diff = plstart - datetime.utcnow()
+                print "%d ms to update cached playlist." % (diff.microseconds / 1000)
                 self.playlist.version = s['playlist']
             
             if 'stored_playlist' in changes:
