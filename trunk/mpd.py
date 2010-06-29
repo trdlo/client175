@@ -185,10 +185,20 @@ class MPDClient(object):
         return pair
 
     def _read_pairs(self, separator=": "):
-        pair = self._read_pair(separator)
+        line = self._read_line()
+        if line is None:
+            return
+        pair = line.split(separator, 1)
+        if len(pair) < 2:
+            raise ProtocolError("Could not parse pair: '%s'" % line)
         while pair:
             yield pair
-            pair = self._read_pair(separator)
+            line = self._read_line()
+            if line is None:
+                return
+            pair = line.split(separator, 1)
+            if len(pair) < 2:
+                raise ProtocolError("Could not parse pair: '%s'" % line)
         raise StopIteration
 
     def _read_list(self):

@@ -90,7 +90,7 @@ class _MpdPlaylist(list):
             change['type'] = 'file'
             change['ptime'] = hmsFromSeconds(change.get('time', 0))
             if not change.get('title'):
-                change['title'] = change['file'].split('/')[-1]
+                change['title'] = change['file'].rsplit('/', 1)[-1]
             self[p] = change
 
 
@@ -225,7 +225,6 @@ class _Mpd_Instance:
 
 
     def _extendDbResult(self, data):
-        xstart = datetime.utcnow()
         for item in data:
             keys = item.keys()
             if 'file' in keys:
@@ -237,7 +236,7 @@ class _Mpd_Instance:
                 item['type'] = 'file'
                 item['ptime'] = hmsFromSeconds(item.get('time', 0))
                 if not item.get('title'):
-                    item['title'] = item['file'].split('/')[-1]
+                    item['title'] = item['file'].rsplit('/', 1)[-1]
             elif 'directory' in keys:
                 item['type'] = 'directory'
                 item['title'] = item['directory'].split('/')[-1]
@@ -251,9 +250,6 @@ class _Mpd_Instance:
                 item['title'] = item[keys[0]]
                 item['id'] = keys[0] + ":" + item[keys[0]]
                 
-        diff = datetime.utcnow() - xstart
-        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to extend database result for %d items" % (ms, len(data))
         return data
 
 
@@ -339,7 +335,7 @@ class _Mpd_Instance:
             
         diff = datetime.utcnow() - xstart
         ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to run command: %s  (includes extending database results)" % (ms, command)
+        print "%d ms to run command: %s" % (ms, command)
         return result
 
 
@@ -363,7 +359,7 @@ class _Mpd_Instance:
             
         diff = datetime.utcnow() - xstart
         ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to sort data for: %s" % (ms, key)
+        print "%d ms to sort data for: %s" % (ms, command)
         return sorted_result
 
 
