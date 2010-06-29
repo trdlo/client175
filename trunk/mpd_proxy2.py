@@ -87,6 +87,10 @@ class _MpdPlaylist(list):
         for change in changes:
             p = int(change['pos'])
             change['pos'] = p + 1
+            change['type'] = 'file'
+            change['ptime'] = hmsFromSeconds(change.get('time', 0))
+            if not change.get('title'):
+                change['title'] = change['file'].split('/')[-1]
             self[p] = change
 
 
@@ -187,6 +191,8 @@ class _Mpd_Instance:
             return self.listplaylists
         elif name == 'load':
             return self.load
+        elif name == 'playlistinfo':
+            return lambda: self.playlist[:]
         elif name == 'save':
             return self.save
         else:
@@ -357,7 +363,7 @@ class _Mpd_Instance:
             
         diff = datetime.utcnow() - xstart
         ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to sort data for: %" % (ms, key)
+        print "%d ms to sort data for: %s" % (ms, key)
         return sorted_result
 
 
