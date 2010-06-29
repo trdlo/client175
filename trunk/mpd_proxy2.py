@@ -535,17 +535,12 @@ class _Mpd_Instance:
                 ln = int(s['playlistlength'])
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
-                plstart = datetime.utcnow()
-                changes = self.plchanges(plver)
-                diff = datetime.utcnow() - plstart
-                ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-                print "%d ms to get playlist updates." % ms
                 
                 plstart = datetime.utcnow()
-                self.playlist.update(changes, ln)
+                self.playlist.update(self.con.plchanges(plver), ln)
                 diff = datetime.utcnow() - plstart
                 ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-                print "%d ms to update cached playlist." % ms
+                print "%d ms to load playlist updates." % ms
                 self.playlist.version = s['playlist']
             
             if 'stored_playlist' in changes:

@@ -326,41 +326,50 @@ class Root:
         filter = kwargs.get('filter')
         if filter:
             data = self.filter_results(data, filter)
+        
+        clipped = False
+        if len(data) > 1000:
+            data = data[:1000]
+            clipped = True
             
         if data and kwargs.get('albumheaders'):
             result = []
-            g = data[0].get
-            a = {
-                'album': g('album', 'Unknown'),
-                'artist': g('albumartist', g('artist', 'Unknown')),
-                'file': g('file'),
-                'cls': 'album-group-start',
-                'id': 'aa0'
-            }       
             i = 0
+            
+            def makeHeader(dg):
+                return {
+                    'album': dg('album', 'Unknown'),
+                    'artist': dg('albumartist', dg('artist', 'Unknown')),
+                    'file': dg('file'),
+                    'cls': 'album-group-start',
+                    'id': 'aa0'
+                }
+                
+            a = makeHeader(data[0].get)
             result.append(a)
             for d in data:
                 g = d.get
                 if a['album'] != g('album', 'Unknown'):
                     result[-1]['cls'] = 'album-group-end album-group-track'
                     i += 1
-                    a = {
-                        'album': g('album', 'Unknown'),
-                        'artist': g('albumartist', g('artist', 'Unknown')),
-                        'file': g('file'),
-                        'cls': 'album-group-start',
-                        'id': 'aa%d' % i
-                    }
+                    a = makeHeader(g)
                     result.append(a)
                 elif a['artist'] != g('albumartist', g('artist', 'Unknown')):
                     a['artist'] = 'Various Artists'
                     
                 d['cls'] = 'album-group-track'
                 result.append(d)
-                
-            return json.dumps(result)
         else:
-            return json.dumps(data)
+            result = data
+            
+        if clipped:
+            result.append({
+                'title': 'Results limited to 1000 items with this method.',
+                'id': 'clipmessage',
+                'type': 'message',
+                'cls': 'album-group-track'
+            })
+        return json.dumps(result)
     playlistinfoext.exposed = True
 
 

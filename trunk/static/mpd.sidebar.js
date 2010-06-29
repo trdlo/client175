@@ -192,7 +192,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                     handler: function(menuItem, event){
                         var tb = Ext.getCmp('dbtabbrowser')
                         if (tb) {
-                            tb.addPlaylistTab()
+                            tb.addPlaylistTab(true)
                             var n = self.nextSibling()
                             self.ownerCt.remove(self, true)
                             if (n) n.expand.call(n)

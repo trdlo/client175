@@ -774,7 +774,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
 			}
 		}
     },
-    addPlaylistTab: function () {
+    addPlaylistTab: function (forceLoad) {
         var idx = this.items.length - 1
         var t = this.insert(idx, {
 			layout: 'fit',
@@ -785,6 +785,7 @@ mpd.browser.TabPanel = Ext.extend(Ext.TabPanel, {
         })
         var g = t.get(0)
         g.showFullView()
+        if (forceLoad) g.db_refresh()
         this.setActiveTab(t)
         return t
     },
