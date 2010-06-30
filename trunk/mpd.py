@@ -256,11 +256,12 @@ class MPDClient(object):
     def _read_songs(self):
         obj = {}
         for key, value in self._read_pairs():
-            if key == 'File':
+            if key == 'file':
                 if obj:
                     yield obj
                     obj = {}
-                key = 'file'
+            else:
+                key = key.lower()
             obj[key] = value       
         if obj:
             yield obj
