@@ -162,7 +162,7 @@ class MPDClient(object):
         line = self._rfile.readline()
         if not line.endswith("\n"):
             raise ConnectionError("Connection lost while reading line")
-        line = line.rstrip("\n")
+        line = line[:-1]
         if line.startswith(ERROR_PREFIX):
             error = line[len(ERROR_PREFIX):].strip()
             raise CommandError(error)
@@ -175,20 +175,15 @@ class MPDClient(object):
             return
         return line
 
-    def _read_pair(self, separator):
-        line = self._read_line()
-        if line is None:
-            return
-        pair = line.split(separator, 1)
-        if len(pair) < 2:
-            raise ProtocolError("Could not parse pair: '%s'" % line)
-        return pair
-
     def _read_pairs(self, separator=": "):
-        pair = self._read_pair(separator)
-        while pair:
+        rl = self._read_line
+        line = rl()
+        while line is not None:
+            pair = line.split(separator, 1)
+            if len(pair) != 2:
+                raise ProtocolError("Could not parse pair: '%s'" % line)
             yield pair
-            pair = self._read_pair(separator)
+            line = rl()
         raise StopIteration
 
     def _read_list(self):
@@ -215,12 +210,6 @@ class MPDClient(object):
                 if key in delimiters:
                     yield obj
                     obj = {}
-                elif key in obj:
-                    if not isinstance(obj[key], list):
-                        obj[key] = [obj[key], value]
-                    else:
-                        obj[key].append(value)
-                    continue
             obj[key] = value
         if obj:
             yield obj
@@ -263,9 +252,22 @@ class MPDClient(object):
 
     def _fetch_objects(self, delimiters):
         return self._wrap_iterator(self._read_objects(delimiters))
+        
+    def _read_songs(self):
+        obj = {}
+        for key, value in self._read_pairs():
+            if key == 'File':
+                if obj:
+                    yield obj
+                    obj = {}
+                key = 'file'
+            obj[key] = value       
+        if obj:
+            yield obj
+        raise StopIteration
 
     def _fetch_songs(self):
-        return self._fetch_objects(["file"])
+        return self._wrap_iterator(self._read_songs())
 
     def _fetch_playlists(self):
         return self._fetch_objects(["playlist"])
