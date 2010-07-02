@@ -1,0 +1,15 @@
+#summary Overview of changes between versions.
+
+== 0.2 Released July 2, 2010 ==
+
+  * Significant performance improvements to loading large data sets, particularly the playlist
+  * Playlist sidebar now supports paging, to prevent over loading the browser with huge playlists
+  * Added options to site.conf for setting MPD's host and port
+  * Window title is now set to current song's title and artist
+  * Loading/Replacing playlist will restart playback if it was playing at the time
+  * Added ability to run mpd protocol commands directly via the search and filter boxes.  Any search that starts with "mpd " will be interpreted as an mpd command.
+
+
+== 0.1 Released June 26, 2010 ==
+
+  * Initial Release
