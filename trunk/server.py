@@ -370,8 +370,9 @@ class Root:
                     'artist': dg('albumartist', dg('artist', 'Unknown')),
                     'file': dg('file'),
                     'cls': 'album-group-start',
-                    'id': 'aa0'
+                    'id': 'aa' + i
                 }
+                i++
                 
             a = makeHeader(data[0].get)
             result.append(a)

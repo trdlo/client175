@@ -420,7 +420,7 @@ class _Mpd_Instance:
             replace = True
         ret = self._safe_cmd(self.con.load, [playlistName])
         if wasPlaying:
-            self._safe_cmd(self.con.play, [0])
+            self._safe_cmd(self.con.play, ['0'])
         if replace:
             self.lock.acquire()
             try:
