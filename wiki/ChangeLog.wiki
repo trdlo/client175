@@ -2,6 +2,8 @@
 
 == 0.2 Released July 2, 2010 ==
 
+This release was tagged as Depracated shortly after it was uploaded.  There are serious bugs with the playlist.
+
   * Significant performance improvements to loading large data sets, particularly the playlist
   * Playlist sidebar now supports paging, to prevent over loading the browser with huge playlists
   * Added options to site.conf for setting MPD's host and port
