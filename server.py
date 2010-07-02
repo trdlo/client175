@@ -30,21 +30,44 @@ from covers import CoverSearch
 import metadata
 from metadata._base import NotReadable, NotWritable
 
-LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
-COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
+
 cherrypy.config.update( {
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
+LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
 cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
+
+MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
+MUSIC_DIR = os.path.expanduser(MUSIC_DIR)
+COVERS_DIR = os.path.join(LOCAL_DIR, "static", "covers")
 LOCAL_COVERS = cherrypy.config.get('local_covers', None)
 if LOCAL_COVERS:
     for i in range(len(LOCAL_COVERS)):
         LOCAL_COVERS[i] = os.path.expanduser(LOCAL_COVERS[i])
-MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
-MUSIC_DIR = os.path.expanduser(MUSIC_DIR)
 
-mpd = mpd_proxy.Mpd()
+HOST = "localhost"
+PORT = 6600
+PASSWORD = None
+
+if os.environ.has_key("MPD_HOST"):
+    mpd_host = str(os.environ["MPD_HOST"])
+    if "@" in mpd_host:
+        mpd_host = mpd_host.split("@")
+        PASSWORD = mpd_host[0]
+        HOST = mpd_host[1]
+    else:
+        HOST = mpd_host
+
+if os.environ.has_key("MPD_PORT"):
+    PORT = int(os.environ["MPD_PORT"])
+    
+HOST = cherrypy.config.get('mpd_host', HOST)
+PORT = cherrypy.config.get('mpd_port', PORT)
+PASSWORD = cherrypy.config.get('mpd_password', PASSWORD)
+
+
+mpd = mpd_proxy.Mpd(HOST, PORT, PASSWORD)
 cs = CoverSearch(COVERS_DIR, LOCAL_COVERS)
 
 
@@ -324,13 +347,18 @@ class Root:
     def playlistinfoext(self, **kwargs):
         data = mpd.playlistinfo()
         filter = kwargs.get('filter')
+        start = int(kwargs.get('start', 0))
+        limit = kwargs.get('limit', None)
+        
         if filter:
             data = self.filter_results(data, filter)
-        
-        clipped = False
-        if len(data) > 1000:
-            data = data[:1000]
-            clipped = True
+           
+        ln = len(data)
+        if limit:
+            end = start + int(limit)
+            if end > ln:
+                end = ln
+            data = data[start:end]
             
         if data and kwargs.get('albumheaders'):
             result = []
@@ -362,26 +390,24 @@ class Root:
         else:
             result = data
             
-        if clipped:
-            result.append({
-                'title': 'Results limited to 1000 items with this method.',
-                'id': 'clipmessage',
-                'type': 'message',
-                'cls': 'album-group-track'
-            })
-        return json.dumps(result)
+        if limit:
+            resultp = {}
+            resultp['totalCount'] = ln
+            resultp['data'] = result
+            return json.dumps(resultp)
+        else:
+            return json.dumps(result)
     playlistinfoext.exposed = True
 
 
     def protocol(self, cmd):
         """
-        Run mpd protocol command as string and return results pretty printed.
+        Run mpd protocol command as string and return raw text results.
         """
         try:
-            result = mpd.execute(cmd)
+            return mpd.raw(cmd)
         except MPDError, e:
             raise cherrypy.HTTPError(501, message=str(e))
-        return json.dumps(result, sort_keys=True, indent=4)
     protocol.exposed = True
                 
 
@@ -429,8 +455,7 @@ class Root:
             if d['type'] == 'file':
                 pl = mpd.playlist.getByFile(d['file'])
                 if pl:
-                    d['id'] = pl['id']
-                    d['pos'] = pl['pos']
+                    data[i] = pl
 
         return json.dumps(result)
     query.exposed = True

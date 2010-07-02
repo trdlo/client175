@@ -42,10 +42,12 @@ mpd.util.context.items = {
             if (data.length == 1 && data[0].type == 'playlist') {
                 mpd.cmd(['load', data[0].playlist, true])
             } else {
+                var wasPlaying = (mpd.status.state == 'play')
                 mpd.cmd(['clear'])
                 Ext.each(data, function(d){
                     mpd.cmd(['add', d.type, d[d.type]])
                 })
+                if (wasPlaying) mpd.cmd.defer(1000, null, [['play', 0]])
             }
             mpd.util.context.lastCommand = self.id
         }

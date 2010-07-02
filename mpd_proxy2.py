@@ -26,31 +26,16 @@ import threading, re, os, socket
 from copy import deepcopy
 import sys, traceback
 
-
-HOST = "localhost"
-PORT = 6600
-PASSWORD = None
 _Instance = None
 _Poller = None
 
-if os.environ.has_key("MPD_HOST"):
-    mpd_host = str(os.environ["MPD_HOST"])
-    if "@" in mpd_host:
-        mpd_host = mpd_host.split("@")
-        PASSWORD = mpd_host[0]
-        HOST = mpd_host[1]
-    else:
-        HOST = mpd_host
-
-if os.environ.has_key("MPD_PORT"):
-    PORT = int(os.environ["MPD_PORT"])
 
 
-def Mpd(**kwargs):
+def Mpd(host, port, password):
     global _Instance
     if _Instance is None:
-        _Instance = _Mpd_Instance(**kwargs)
-        _Poller = _Mpd_Poller(**kwargs)
+        _Instance = _Mpd_Instance(host, port, password)
+        _Poller = _Mpd_Poller(host, port, password)
         _Poller.setDaemon(True)
         _Poller.start()
     return _Instance
@@ -65,11 +50,7 @@ class _MpdPlaylist(list):
 
     def getByFile(self, fpath):
         if self.files is None:
-            plstart = datetime.utcnow()
             self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
-            diff = datetime.utcnow() - plstart
-            ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-            print "%d ms to build playlist filename index." % ms
         index = self.files.get(fpath, None)
         if index is None:
             return None
@@ -102,15 +83,8 @@ class _Mpd_Poller(threading.Thread):
     replaces the need to poll mpd on a timer.
     """
     
-    def __init__(self, host=None, port=None, password=None):
+    def __init__(self, host, port, password):
         threading.Thread.__init__(self)
-        if host is None:
-            host = HOST
-        if port is None:
-            port = PORT
-        if password is None:
-            password = PASSWORD
-
         self._host = host
         self._port = port
         self._password = password
@@ -161,14 +135,7 @@ class _Mpd_Instance:
     method.
     """
 
-    def __init__(self, host=None, port=None, password=None):
-        if host is None:
-            host = HOST
-        if port is None:
-            port = PORT
-        if password is None:
-            password = PASSWORD
-
+    def __init__(self, host, port, password):
         self._host = host
         self._port = port
         self._password = password
@@ -195,6 +162,8 @@ class _Mpd_Instance:
             return lambda: self.playlist[:]
         elif name == 'save':
             return self.save
+        elif name == 'raw':
+            return self.raw
         else:
             fn = self.con.__getattr__(name)
 
@@ -442,11 +411,16 @@ class _Mpd_Instance:
 
 
     def load(self, playlistName, replace=False):
+        wasPlaying = False
         if replace:
+            if self.state['state'] == 'play':
+                wasPlaying = True
             self._safe_cmd(self.con.clear, [])
         elif int(self.state['playlistlength']) == 0:
             replace = True
         ret = self._safe_cmd(self.con.load, [playlistName])
+        if wasPlaying:
+            self._safe_cmd(self.con.play, [0])
         if replace:
             self.lock.acquire()
             try:
@@ -497,6 +471,27 @@ class _Mpd_Instance:
         finally:
             self.lock.release()
             
+            
+    def raw(self, cmd):
+        t = []
+        self.lock.acquire()
+        try:
+            self.con._write_line(cmd)
+            rl = self.con._read_line
+            line = rl()
+            while line is not None:
+                t.append(line)
+                line = rl()
+            t.append("OK\n")
+            return '\n'.join(t)
+        except Exception, e:
+            print '-'*60
+            traceback.print_exc(file=sys.stdout)
+            print '-'*60
+            return e.message
+        finally:
+            self.lock.release()
+        
 
 
     def sync(self, changes=None):                       

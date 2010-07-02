@@ -61,7 +61,7 @@ mpd.init = function(){
                 title: ' Info Panel',
                 plugins: [Ext.ux.PanelCollapsedTitle],
                 collapsible: true,
-                minWidth: 200,
+                minWidth: 210,
                 width: 300,
                 items: {
                     xtype: 'container',
@@ -98,6 +98,11 @@ mpd.init = function(){
 		var tb = Ext.getCmp('dbtabbrowser')
 		tb.addPlaylistTab()
 	}
+    mpd.events.on('title', function(){
+        var s = mpd.status.title
+        if (s.artist) s += ' by ' + mpd.status.artist
+        document.title = 'Client175: ' + s
+    })
     mpd.checkStatus.delay(100)
 }
 
