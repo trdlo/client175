@@ -687,7 +687,7 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridPanel, {
 					playlistStyle: 'albumcovers',
 					iconCls: 'icon-playlist'
 				})
-				p.store.load()
+				p.db_refresh()
 				sb.doLayout()
 				sb.layout.setActiveItem('playlistsidebar')
 				Ext.state.Manager.set('playlistLocation', 'sidebar')
