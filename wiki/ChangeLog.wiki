@@ -1,4 +1,5 @@
 #summary Overview of changes between versions.
+#labels Features-Playlist,Features-Browser
 
 == 0.2a Released July 2, 2010 ==
 
