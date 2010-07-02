@@ -372,7 +372,7 @@ class Root:
                     'cls': 'album-group-start',
                     'id': 'aa' + i
                 }
-                i++
+                i += 1
                 
             a = makeHeader(data[0].get)
             result.append(a)
