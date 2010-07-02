@@ -192,11 +192,6 @@ div.remove:hover,
 }
 
 .x-list-body {
-	top:22px;
-	position:absolute;
-	bottom:0px !important;
-}
-.x-list-body {
 	border-left: 1px solid #D0D0D0;
 }
 .x-list-body dl {

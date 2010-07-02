@@ -132,15 +132,21 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
          **/
 
         var self = this
-        this.store = new Ext.data.JsonStore({
+        this.store = new Ext.data.Store({
 			autoLoad: false,
 			url: '../playlistinfoext',
-            fields: mpd.dbFields()
+            reader: new Ext.data.JsonReader({
+                root            : 'data',
+                totalProperty   : 'totalCount',
+                idProperty      : 'id'
+              },
+              mpd.dbFields()
+            )
         })
         
-        mpd.events.on('playlist', this.store.load, this.store)
+        mpd.events.on('playlist', this.db_refresh, this)
         this.store.on('beforedestroy', function(){
-            mpd.events.un('playlist', this.store.load, this.store)
+            mpd.events.un('playlist', this.db_refresh, this)
         }, this)
 
         var pstyle = Ext.value(config.playlistStyle, '3line')
@@ -202,12 +208,19 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                 }
             ]
         })
-
+        
+        this.pageBar = new Ext.PagingToolbar({
+            pageSize: mpd.PAGE_LIMIT,
+            store: this.store,
+            displayInfo: false
+        })
+        this.pageBar.refresh.hide()
+                
         Ext.apply(this, {
             id: 'playlistsidebar',
             title: 'Playlist',
             layout: 'fit',
-            minWidth: 200,
+            minWidth: 210,
             items: self.list,
             forceLayout: true,
             tools: [
@@ -221,24 +234,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                 }
             ],
             tbar: mpd.util.createPlaylistToolbar(),
-            bbar: new Ext.Toolbar({
-				layout: 'hbox',
-				layoutConfig: {
-					align: 'middle'
-				},
-				items: [
-					{
-						xtype: 'label',
-						text: 'Filter:',
-						margins: '0 4 0 2'
-					},
-					new Ext.app.FilterField({
-						store: self.store,
-						margins: '0 2 0 2',
-						flex: 1
-					})
-				]
-			}),
+            bbar: this.pageBar,
             listeners: {
                 'beforecollapse': function () {
                     Ext.getCmp('dbtabbrowser').unhideTabStripItem('playlistTab')
@@ -249,6 +245,38 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                 'beforeexpand': function () {
                     Ext.getCmp('dbtabbrowser').hideTabStripItem('playlistTab')
                     var a = Ext.getCmp('dbtabbrowser').getActiveBrowser()
+                },
+                'render': function(pnl) {
+                    this.filterBar = new Ext.Toolbar({
+                        renderTo: this.tbar,
+                        hidden: true,
+                        layout: 'hbox',
+                        layoutConfig: {
+                            align: 'middle'
+                        },
+                        items: [
+                            {
+                                xtype: 'label',
+                                text: 'Filter:',
+                                margins: '0 4 0 2'
+                            },
+                            new Ext.app.FilterField({
+                                store: self.store,
+                                margins: '0 2 0 2',
+                                flex: 1
+                            })
+                        ]
+                    })
+                    tb = this.getTopToolbar()
+                    tb.add('-', new Ext.Button({
+                        iconCls: 'icon-search',
+                        handler: function(btn) {
+                            this.filterBar.setVisible(this.filterBar.hidden)
+                            this.syncSize()
+                            this.ownerCt.doLayout()
+                        },
+                        scope: this
+                    }))
                 }
             }
         });
@@ -283,10 +311,10 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                         dataIndex: 'title',
                         tpl:
                         '<tpl if="title">' +
-							'<dt style="width:10%"><em unselectable="on">'+
+							'<dt style="width:15%"><em unselectable="on">'+
                                 '<div id="{id}" class="remove {cls}">{pos}.</div>' +
                             '</em></dt>'+
-							'<dt style="width:90%"><em unselectable="on">'+
+							'<dt style="width:85%"><em unselectable="on">'+
                                 '<div>{title}</div>'+
                             '</em></dt>' +
 						'</tpl>' +
@@ -320,10 +348,10 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                         dataIndex: 'title',
                         tpl:
                         '<tpl if="title">' +
-							'<dt style="width:10%"><em unselectable="on">'+
+							'<dt style="width:15%"><em unselectable="on">'+
                                 '<div id="{id}" class="remove {cls}">{pos}.</div>' +
                             '</em></dt>'+
-							'<dt style="width:90%"><em unselectable="on">'+
+							'<dt style="width:85%"><em unselectable="on">'+
                                 '<div>{title}</div>'+
                             '</em></dt>' +
 						'</tpl>' +
@@ -357,7 +385,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
                     {
                         header: "#",
                         dataIndex: 'position',
-                        width: 0.125,
+                        width: 0.15,
                         tpl: '<div id="{id}" class="remove">{pos}.<br/>\
                         <tpl if="album"><br/></tpl>\
                         <tpl if="artist"><br/></tpl>\
@@ -498,14 +526,22 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
             self.list.dragZone.unreg()
             self.list.dropZone.unreg()
             self.remove(self.list, true)
+			self.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
             self.list = new_list
             self.add(new_list)
             self.doLayout()
-            self.store.load()
+            self.db_refresh()
         } else {
             self.list = new_list
         }
-    }
+    },
+    db_refresh: function(){
+		if (!this.store.lastOptions) {
+			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
+		} else {
+			this.store.reload()
+		}
+	}
 });
 Ext.reg('playlist_sidebar', mpd.sidebar.Playlist)
 

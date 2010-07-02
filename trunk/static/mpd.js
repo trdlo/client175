@@ -102,25 +102,37 @@ mpd.cmd = function (aCmd, callBack) {
         Ext.each(aCmd, function(item) {
             url += "/" + encodeURIComponent(item)
         })
+        Ext.Ajax.request({
+            url: url,
+            success: function(response, opts) {
+                if (Ext.isFunction(callBack)) {
+                    d = Ext.util.JSON.decode(response.responseText)
+                    callBack(d, aCmd)
+                }
+            },
+            failure: function (req, opt) {
+                var m = "The following error was encontered when sending the command:&nbsp;&nbsp;<b>" +
+                    aCmd.join(" ") + "</b><br/><br/>"
+                var t = req.responseText || req.responseStatus
+                Ext.Msg.alert("MPD Error", m + t)
+            }
+        })
     } else {
-        url = "../protocol/" + encodeURIComponent(aCmd)
+        Ext.Ajax.request({
+            url: "../protocol/" + encodeURIComponent(aCmd),
+            success: function(response, opts) {
+                if (Ext.isFunction(callBack)) {
+                    callBack(response.responseText, aCmd)
+                }
+            },
+            failure: function (req, opt) {
+                var m = "The following error was encontered when sending the command:&nbsp;&nbsp;<b>" +
+                    aCmd.join(" ") + "</b><br/><br/>"
+                var t = req.responseText || req.responseStatus
+                Ext.Msg.alert("MPD Error", m + t)
+            }
+        })
     }
-    
-    Ext.Ajax.request({
-        url: url,
-        success: function(response, opts) {
-			if (Ext.isFunction(callBack)) {
-				d = Ext.util.JSON.decode(response.responseText)
-				callBack(d, aCmd, response.responseText)
-			}
-        },
-        failure: function (req, opt) {
-			var m = "The following error was encontered when sending the command:&nbsp;&nbsp;<b>" +
-				aCmd.join(" ") + "</b><br/><br/>"
-			var t = req.responseText || req.responseStatus
-			Ext.Msg.alert("MPD Error", m + t)
-		}
-    })
 }
 
 mpd.setvol_tmr = null

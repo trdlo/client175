@@ -72,15 +72,15 @@ Ext.app.SearchField = Ext.extend(Ext.form.TwinTriggerField, {
         var b = Ext.getCmp('dbtabbrowser').getActiveBrowser()
         b.goTo({'type': 'search', 'search': val})
     },
-    onCmdCallback: function(result, cmd, raw) {
-        if (raw != 'null') {
+    onCmdCallback: function(result, cmd) {
+        if (result != 'null') {
             var w = new Ext.Window({
                 title: cmd,
                 height: 250,
                 width: 400,
                 layout: 'fit',
                 items: new Ext.form.TextArea({
-                    value: raw,
+                    value: result,
                     style: {'background': 'none'}
                 })
             }).show()
