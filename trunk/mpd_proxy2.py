@@ -273,7 +273,6 @@ class _Mpd_Instance:
         command = ['list', 'album', 'artist', 'David Bowie']
         """
 
-        xstart = datetime.utcnow()
         if isinstance(command, str) or isinstance(command, unicode):
             cached = self._dbcache.get(command)
             if cached is not None:
@@ -302,9 +301,6 @@ class _Mpd_Instance:
         if cmd in self._cache_cmds:
             self._dbcache[command] = result
             
-        diff = datetime.utcnow() - xstart
-        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to run command: %s" % (ms, command)
         return result
 
 
@@ -531,11 +527,7 @@ class _Mpd_Instance:
                 if ln == 0:
                     s['playlistname'] = 'Untitled'
                 
-                plstart = datetime.utcnow()
                 self.playlist.update(self.con.plchanges(plver), ln)
-                diff = datetime.utcnow() - plstart
-                ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-                print "%d ms to load playlist updates." % ms
                 self.playlist.version = s['playlist']
             
             if 'stored_playlist' in changes:
