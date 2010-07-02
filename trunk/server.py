@@ -362,17 +362,14 @@ class Root:
             
         if data and kwargs.get('albumheaders'):
             result = []
-            i = 0
             
             def makeHeader(dg):
                 return {
                     'album': dg('album', 'Unknown'),
                     'artist': dg('albumartist', dg('artist', 'Unknown')),
                     'file': dg('file'),
-                    'cls': 'album-group-start',
-                    'id': 'aa' + i
+                    'cls': 'album-group-start'
                 }
-                i += 1
                 
             a = makeHeader(data[0].get)
             result.append(a)
@@ -380,7 +377,6 @@ class Root:
                 g = d.get
                 if a['album'] != g('album', 'Unknown'):
                     result[-1]['cls'] = 'album-group-end album-group-track'
-                    i += 1
                     a = makeHeader(g)
                     result.append(a)
                 elif a['artist'] != g('albumartist', g('artist', 'Unknown')):
