@@ -81,6 +81,7 @@ class MPDClient(object):
             "clear":            self._fetch_nothing,
             "delete":           self._fetch_nothing,
             "deleteid":         self._fetch_nothing,
+            "findadd":          self._fetch_nothing,
             "move":             self._fetch_nothing,
             "moveid":           self._fetch_nothing,
             "playlist":         self._fetch_playlist,
@@ -254,15 +255,23 @@ class MPDClient(object):
         return self._wrap_iterator(self._read_objects(delimiters))
         
     def _read_songs(self):
+        separator = ": "
+        read_line = self._read_line
         obj = {}
-        for key, value in self._read_pairs():
+        line = read_line()
+        while line is not None:
+            try:
+                key, value = line.split(separator, 1)
+            except ValueError:
+                raise ProtocolError("Could not parse pair: '%s'" % line)
             if key == 'file':
                 if obj:
                     yield obj
                     obj = {}
             else:
                 key = key.lower()
-            obj[key] = value       
+            obj[key] = value    
+            line = read_line()   
         if obj:
             yield obj
         raise StopIteration
@@ -332,7 +341,7 @@ class MPDClient(object):
             raise socket.error(msg)
         return sock
 
-    def connect(self, host, port):
+    def connect(self, host='localhost', port=6600):
         if self._sock:
             raise ConnectionError("Already connected")
         if host.startswith("/"):

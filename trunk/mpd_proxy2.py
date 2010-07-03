@@ -42,40 +42,6 @@ def Mpd(host, port, password):
 
 
 
-class _MpdPlaylist(list):
-
-    def __init__(self):
-        self.version = -1
-        self.files = None
-
-    def getByFile(self, fpath):
-        if self.files is None:
-            self.files = dict(( (x['file'], int(x['pos'])-1) for x in self ))
-        index = self.files.get(fpath, None)
-        if index is None:
-            return None
-        else:
-            return self[index]
-
-    def update(self, changes, new_length):
-        self.files = None
-        old_length = len(self)
-        if new_length >= old_length:
-            for x in range(new_length - old_length):
-                self.append(None)
-        else:
-            del self[new_length:]
-        for change in changes:
-            p = int(change['pos'])
-            change['pos'] = p + 1
-            change['type'] = 'file'
-            change['ptime'] = hmsFromSeconds(change.get('time', 0))
-            if not change.get('title'):
-                change['title'] = change['file'].rsplit('/', 1)[-1]
-            self[p] = change
-
-
-
 class _Mpd_Poller(threading.Thread):
     """
     A simplified version of the _MPD_Instance which does nothing but
@@ -144,9 +110,11 @@ class _Mpd_Instance:
         self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
         self.lastcheck = datetime.utcnow()
         self.state['playlists'] = self.lastcheck.ctime()
-        self.playlist = _MpdPlaylist()
+        self._playlistFiles = {}
         self._dbcache = {}
-        self._cache_cmds = ('list', 'lsinfo', 'find', 'search', 'playlistinfo')
+        self._cache_cmds = ('list', 'lsinfo', 'find', 'search')
+        self._extendDb_cmds = ('lsinfo', 'find', 'search', 'playlistinfo', 
+                                'playlistfind', 'playlistsearch', 'listplaylistinfo')
         self.lock = threading.RLock()
         self._connect()
 
@@ -158,16 +126,12 @@ class _Mpd_Instance:
             return self.listplaylists
         elif name == 'load':
             return self.load
-        elif name == 'playlistinfo':
-            return lambda: self.playlist[:]
         elif name == 'save':
             return self.save
-        elif name == 'raw':
-            return self.raw
         else:
             fn = self.con.__getattr__(name)
 
-        if name in ('lsinfo', 'find', 'search', 'playlistinfo', 'listplaylistinfo'):
+        if name in self._extendDb_cmds:
             return lambda *args: self._extendDbResult(self._safe_cmd(fn, args))
         return lambda *args: self._safe_cmd(fn, args)
 
@@ -314,7 +278,6 @@ class _Mpd_Instance:
             return cached
 
         result = self.execute(command)
-        xstart = datetime.utcnow()
         useLower = False
         if sortKey not in ('time', 'pos', 'songs'):
             useLower = True
@@ -322,9 +285,6 @@ class _Mpd_Instance:
         if command in self._cache_cmds:
             self._dbcache[key] = sorted_result
             
-        diff = datetime.utcnow() - xstart
-        ms = (diff.seconds * 1000) + (diff.microseconds / 1000)
-        print "%d ms to sort data for: %s" % (ms, command)
         return sorted_result
 
 
@@ -334,7 +294,7 @@ class _Mpd_Instance:
             end_in_list = True
             self.command_list_end()
 
-        songs = self.find(what, name)
+        songs = self.execute(('find', what, name))
         self.command_list_ok_begin()
         for song in songs:
             self.add(song['file'])
@@ -344,7 +304,23 @@ class _Mpd_Instance:
         else:
             self.command_list_end()
             return True
-
+            
+            
+    def getPlaylistByFile(self, fpath):
+        item = self._playlistFiles.get(fpath, None)
+        if item is None:
+            pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
+            if pl:
+                item = self._extendDbResult(pl)[0]
+            else:
+                item = False
+            try:
+                self.lock.acquire()
+                self._playlistFiles[fpath] = item
+            finally:
+                self.lock.release()
+        return item
+        
 
     def list(self, *args):
         command = 'list ' + ' '.join(args)
@@ -509,26 +485,26 @@ class _Mpd_Instance:
                 
         self.lock.acquire()
         try:
+            if 'startup' in changes:
+                changes = ['database', 'playlist', 'stored_playlist']
+                
             s = self.con.stats()
             s.update(self.con.status())
             t = s.get('time', '0:0').split(':')
             s['elapsed'] = t[0]
             if s.get('state', '') != 'stop':
-                s.update(self.con.currentsong())
+                item = self.con.currentsong()
+                if not item.get('title'):
+                    item['title'] = item['file'].rsplit('/', 1)[-1]
+                s.update(item)
 
-            if s.get('db_update') <> self.state.get('db_update'):
+            if 'database' in changes:
                 self._dbcache = {}
 
-            plver = self.playlist.version
-            if plver <> s['playlist']:
-                if self._dbcache.has_key('playlistinfo'):
-                    del self._dbcache['playlistinfo']
-                ln = int(s['playlistlength'])
-                if ln == 0:
+            if 'playlist' in changes:
+                if s['playlistlength'] == '0':
                     s['playlistname'] = 'Untitled'
-                
-                self.playlist.update(self.con.plchanges(plver), ln)
-                self.playlist.version = s['playlist']
+                self._playlistFiles = {}
             
             if 'stored_playlist' in changes:
                 if self._dbcache.has_key('listplaylists'):

@@ -47,7 +47,7 @@ mpd.util.context.items = {
                 Ext.each(data, function(d){
                     mpd.cmd(['add', d.type, d[d.type]])
                 })
-                if (wasPlaying) mpd.cmd.defer(1000, null, [['play', 0]])
+                if (wasPlaying) mpd.cmd.defer(2000, null, [['play', 0]])
             }
             mpd.util.context.lastCommand = self.id
         }
