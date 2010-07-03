@@ -345,21 +345,34 @@ class Root:
 
 
     def playlistinfoext(self, **kwargs):
-        data = mpd.playlistinfo()
         filter = kwargs.get('filter')
         start = int(kwargs.get('start', 0))
         limit = kwargs.get('limit', None)
+        ln = int(mpd.state['playlistlength'])
         
         if filter:
-            data = self.filter_results(data, filter)
-           
-        ln = len(data)
-        if limit:
-            end = start + int(limit)
-            if end > ln:
-                end = ln
-            data = data[start:end]
-            
+            data = mpd.playlistsearch('any', filter)
+            if limit:
+                ln = len(data)
+                end = start + int(limit)
+                if end > ln:
+                    end = ln
+                if start > end:
+                    data = []
+                else:
+                    data = data[start:end]
+        else:
+            if limit:
+                end = start + int(limit)
+                if end > ln:
+                    end = ln
+                if start > end:
+                    data = []
+                else:
+                    data = mpd.playlistinfo('%d:%d' % (start, end))
+            else:
+                data = mpd.playlistinfo()
+                       
         if data and kwargs.get('albumheaders'):
             result = []
             
@@ -432,9 +445,13 @@ class Root:
             end = start + int(limit)
             if end > ln:
                 end = ln
+            if start > end:
+                d = []
+            else:
+                d = data[start:end]
             result = {}
             result['totalCount'] = ln
-            result['data'] = data[start:end]
+            result['data'] = d
         else:
             result = data
             
@@ -450,7 +467,7 @@ class Root:
         for i in range(len(data)):
             d = data[i]
             if d['type'] == 'file':
-                pl = mpd.playlist.getByFile(d['file'])
+                pl = mpd.getPlaylistByFile(d['file'])
                 if pl:
                     data[i] = pl
 

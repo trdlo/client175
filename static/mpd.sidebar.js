@@ -144,7 +144,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
             )
         })
         
-        mpd.events.on('playlist', this.db_refresh, this, {buffer: 400})
+        mpd.events.on('playlist', this.db_refresh, this)
         this.store.on('beforedestroy', function(){
             mpd.events.un('playlist', this.db_refresh, this)
         }, this)
@@ -539,7 +539,17 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
 		if (!this.store.lastOptions) {
 			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
 		} else {
-			this.store.load(this.store.lastOptions)
+            var pl = parseInt(mpd.status.playlistlength)
+            if (pl == 0) {
+                this.store.removeAll()
+                return true
+            }
+            var opt = this.store.lastOptions
+            var end = opt.params.limit
+            if (end > pl) {
+                opt = {params: {start: 0, limit: mpd.PAGE_LIMIT}}
+            }
+			this.store.load(opt)
 		}
 	}
 });

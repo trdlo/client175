@@ -695,6 +695,17 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridPanel, {
 			},
 			scope: this
 		})
+        config.store = new Ext.data.Store({
+			autoLoad: false,
+			url: '../playlistinfoext',
+            reader: new Ext.data.JsonReader({
+                root            : 'data',
+                totalProperty   : 'totalCount',
+                idProperty      : 'id'
+              },
+              mpd.dbFields()
+            )
+        })
         config.cwd = '<<<playlist>>>'
 		config.cmd = 'playlistinfo'
         Ext.apply(this, config)
@@ -708,7 +719,17 @@ mpd.browser.PlaylistPanel = Ext.extend(mpd.browser.GridPanel, {
 		if (!this.store.lastOptions) {
 			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
 		} else {
-			this.store.reload()
+            var pl = parseInt(mpd.status.playlistlength)
+            if (pl == 0) {
+                this.store.removeAll()
+                return true
+            }
+            var opt = this.store.lastOptions
+            var end = opt.params.limit
+            if (end > pl) {
+                opt = {params: {start: 0, limit: mpd.PAGE_LIMIT}}
+            }
+			this.store.load(opt)
 		}
 	}
 })
