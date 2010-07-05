@@ -351,7 +351,7 @@ class Root:
         
         if filter:
             data = mpd.playlistsearch('any', filter)
-            mpd.checkPlaylistFiles(data)
+            mpd.setPlaylistFiles(data)
             if limit:
                 ln = len(data)
                 end = start + limit
@@ -372,7 +372,7 @@ class Root:
                     data = mpd.playlistinfo('%d:%d' % (start, end))
             else:
                 data = mpd.playlistinfo()
-            mpd.checkPlaylistFiles(data)
+            mpd.setPlaylistFiles(data)
                        
         if data and kwargs.get('albumheaders'):
             result = []
@@ -423,12 +423,16 @@ class Root:
         if not cmd:
             return self.home()
             
+        if cmd == 'playlistinfo':
+            return self.playlistinfoext(start, limit, filter, **kwargs)
+            
         node = kwargs.get("node", False)
         if node:
             m = int(kwargs.get('mincount', 0))
             return self.tree(cmd, node, m)
             
         start = int(start)
+        limit = int(limit)
         if sort:
             data = mpd.execute_sorted(cmd, sort, dir=='DESC')
         else:
@@ -440,7 +444,7 @@ class Root:
             
         if limit:
             ln = len(data)
-            end = start + int(limit)
+            end = start + limit
             if end > ln:
                 end = ln
             if start > end:
@@ -456,7 +460,7 @@ class Root:
         if cmd.startswith('list '):
             return json.dumps(result)
             
-        if cmd in ('playlistinfo', 'listplaylists'):
+        if cmd == 'listplaylists':
             return json.dumps(result)
             
         if limit:
@@ -468,7 +472,6 @@ class Root:
                 pl = mpd.getPlaylistByFile(d['file'])
                 if pl:
                     data[i] = pl
-            mpd.checkPlaylistFiles()
 
         return json.dumps(result)
     query.exposed = True
@@ -480,7 +483,7 @@ class Root:
             s = mpd.sync()
             return json.dumps(s)
         n = 0
-        while n < 100:
+        while n < 50:
             if mpd.state.get('uptime', '') <> client_uptime:
                 return json.dumps(mpd.state)
             sleep(0.1)
@@ -492,7 +495,7 @@ class Root:
     def tree(self, cmd, node, mincount=0, **kwargs):
         if node == 'directory:':
             result = []
-            rawdata = mpd.listall()
+            rawdata = mpd.execute('listall')
             data = []
             for d in rawdata:
                 directory = d.get("directory")
