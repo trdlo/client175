@@ -483,8 +483,8 @@ class _Mpd_Instance:
         return ret
             
             
-    def setPlaylistFiles(self, setFiles=None):
-        files = dict(( (x['file'], x) for x in setFiles ))
+    def setPlaylistFiles(self, songList):
+        files = dict(( (x['file'], x) for x in songList ))
         try:
             self.lock.acquire()
             self._playlistFiles.update(files)
@@ -540,19 +540,10 @@ class _Mpd_Instance:
                 
             self.state.update(s)
             self.lastcheck = datetime.utcnow()
-
-        except (ConnectionError, socket.error), e:
-            print "%s\n    reconnecting..." % e
-            self._connect()
-
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
+            return self.state
 
         finally:
             self.lock.release()
-            return self.state
 
 
 def hmsFromSeconds(seconds):
