@@ -344,17 +344,17 @@ class Root:
     password.exposed = True
 
 
-    def playlistinfoext(self, **kwargs):
-        filter = kwargs.get('filter')
-        start = int(kwargs.get('start', 0))
-        limit = kwargs.get('limit', None)
+    def playlistinfoext(self, start=0, limit=0, filter='', **kwargs):
+        start = int(start)
+        limit = int(limit)
         ln = int(mpd.state['playlistlength'])
         
         if filter:
             data = mpd.playlistsearch('any', filter)
+            mpd.checkPlaylistFiles(data)
             if limit:
                 ln = len(data)
-                end = start + int(limit)
+                end = start + limit
                 if end > ln:
                     end = ln
                 if start > end:
@@ -363,7 +363,7 @@ class Root:
                     data = data[start:end]
         else:
             if limit:
-                end = start + int(limit)
+                end = start + limit
                 if end > ln:
                     end = ln
                 if start > end:
@@ -372,6 +372,7 @@ class Root:
                     data = mpd.playlistinfo('%d:%d' % (start, end))
             else:
                 data = mpd.playlistinfo()
+            mpd.checkPlaylistFiles(data)
                        
         if data and kwargs.get('albumheaders'):
             result = []
@@ -401,10 +402,7 @@ class Root:
             result = data
             
         if limit:
-            resultp = {}
-            resultp['totalCount'] = ln
-            resultp['data'] = result
-            return json.dumps(resultp)
+            return json.dumps({'totalCount': ln, 'data': result})
         else:
             return json.dumps(result)
     playlistinfoext.exposed = True
@@ -421,7 +419,7 @@ class Root:
     protocol.exposed = True
                 
 
-    def query(self, cmd, start=0, limit=0, sort='', dir='ASC', **kwargs):
+    def query(self, cmd, start=0, limit=0, sort='', dir='ASC', filter='', **kwargs):
         if not cmd:
             return self.home()
             
@@ -470,6 +468,7 @@ class Root:
                 pl = mpd.getPlaylistByFile(d['file'])
                 if pl:
                     data[i] = pl
+            mpd.checkPlaylistFiles()
 
         return json.dumps(result)
     query.exposed = True

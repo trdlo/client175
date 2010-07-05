@@ -111,6 +111,8 @@ class _Mpd_Instance:
         self.lastcheck = datetime.utcnow()
         self.state['playlists'] = self.lastcheck.ctime()
         self._playlistFiles = {}
+        self._playlistlength = 0
+        self._playlistFilesFull = True
         self._dbcache = {}
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search')
         self._extendDb_cmds = ('lsinfo', 'find', 'search', 'playlistinfo', 
@@ -196,6 +198,27 @@ class _Mpd_Instance:
             return fn(*args)
         finally:
             self.lock.release()
+            
+            
+    def checkPlaylistFiles(self, setFiles=None):
+        if self._playlistFilesFull:
+            return True
+        if setFiles:
+            files = dict(( (x['file'], x) for x in setFiles ))
+            try:
+                self.lock.acquire()
+                self._playlistFiles.update(files)
+            finally:
+                self.lock.release()
+
+        filesFound = len([x for x in self._playlistFiles.keys() if x is not False])
+        if filesFound >= self._playlistlength:
+            try:
+                self.lock.acquire()
+                self._playlistFilesFull = True
+            finally:
+                self.lock.release()
+        return self._playlistFilesFull
         
         
     def clear_cache(self):
@@ -309,11 +332,14 @@ class _Mpd_Instance:
     def getPlaylistByFile(self, fpath):
         item = self._playlistFiles.get(fpath, None)
         if item is None:
-            pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
-            if pl:
-                item = self._extendDbResult(pl)[0]
+            if self._playlistFilesFull:
+                return False
             else:
-                item = False
+                pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
+                if pl:
+                    item = self._extendDbResult(pl)[0]
+                else:
+                    item = False
             try:
                 self.lock.acquire()
                 self._playlistFiles[fpath] = item
@@ -384,25 +410,24 @@ class _Mpd_Instance:
 
     def load(self, playlistName, replace=False):
         wasPlaying = False
-        if replace:
-            if self.state['state'] == 'play':
-                wasPlaying = True
-            self._safe_cmd(self.con.clear, [])
-        elif int(self.state['playlistlength']) == 0:
-            replace = True
-        ret = self._safe_cmd(self.con.load, [playlistName])
-        if wasPlaying:
-            self._safe_cmd(self.con.play, ['0'])
-        if replace:
-            self.lock.acquire()
-            try:
+        self.lock.acquire()
+        try:
+            if replace:
+                if self.state['state'] == 'play':
+                    wasPlaying = True
+                self._safe_cmd(self.con.clear, [])
                 self.state['playlistname'] = playlistName
-            except Exception, e:
-                print '-'*60
-                traceback.print_exc(file=sys.stdout)
-                print '-'*60
-            finally:
-                self.lock.release()
+            elif int(self.state['playlistlength']) == 0:
+                self.state['playlistname'] = playlistName
+            ret = self._safe_cmd(self.con.load, [playlistName])
+            if wasPlaying:
+                self._safe_cmd(self.con.play, ['0'])
+        except Exception, e:
+            print '-'*60
+            traceback.print_exc(file=sys.stdout)
+            print '-'*60
+        finally:
+            self.lock.release()
         return ret
 
 
@@ -502,9 +527,13 @@ class _Mpd_Instance:
                 self._dbcache = {}
 
             if 'playlist' in changes:
-                if s['playlistlength'] == '0':
-                    s['playlistname'] = 'Untitled'
                 self._playlistFiles = {}
+                self._playlistlength = int(s['playlistlength'])
+                if self._playlistlength == 0:
+                    s['playlistname'] = 'Untitled'
+                    self._playlistFilesFull = True
+                else:
+                    self._playlistFilesFull = False
             
             if 'stored_playlist' in changes:
                 if self._dbcache.has_key('listplaylists'):
