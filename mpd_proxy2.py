@@ -32,6 +32,14 @@ _Poller = None
 
 
 def Mpd(host, port, password):
+    """
+    Returns a singleton MPD instance and starts a poller which utilizes
+    the mpd idle command.  The state attribute is automatically updated
+    with the output of stats, status, and currentsong.
+    
+    The elapsed time is not updated between seek/player events, call 
+    Mpd.sync() to force an update if needed.
+    """
     global _Instance
     if _Instance is None:
         _Instance = _Mpd_Instance(host, port, password)
@@ -96,9 +104,6 @@ class _Mpd_Instance:
     Rather than calling to status, stats, and currentsong separately,
     call sync() periodically and read the results from the mpd.state dict
     which merges the output of all of these commands.
-
-    Also added is a playlist object which is kept updated by the sync()
-    method.
     """
 
     def __init__(self, host, port, password):
@@ -112,7 +117,6 @@ class _Mpd_Instance:
         self.state['playlists'] = self.lastcheck.ctime()
         self._playlistFiles = {}
         self._playlistlength = 0
-        self._playlistFilesFull = True
         self._dbcache = {}
         self._cache_cmds = ('list', 'lsinfo', 'find', 'search')
         self._extendDb_cmds = ('lsinfo', 'find', 'search', 'playlistinfo', 
@@ -189,8 +193,8 @@ class _Mpd_Instance:
 
 
     def _safe_cmd(self, fn, args):
+        self.lock.acquire()
         try:
-            self.lock.acquire()
             return fn(*args)
         except (ConnectionError, socket.error), e:
             print "%s\n    reconnecting..." % e
@@ -198,41 +202,30 @@ class _Mpd_Instance:
             return fn(*args)
         finally:
             self.lock.release()
-            
-            
-    def checkPlaylistFiles(self, setFiles=None):
-        if self._playlistFilesFull:
-            return True
-        if setFiles:
-            files = dict(( (x['file'], x) for x in setFiles ))
-            try:
-                self.lock.acquire()
-                self._playlistFiles.update(files)
-            finally:
-                self.lock.release()
-
-        filesFound = len([x for x in self._playlistFiles.keys() if x is not False])
-        if filesFound >= self._playlistlength:
-            try:
-                self.lock.acquire()
-                self._playlistFilesFull = True
-            finally:
-                self.lock.release()
-        return self._playlistFilesFull
-        
-        
-    def clear_cache(self):
-        self._dbcache = {}
         
         
     def command_list_ok_begin(self):
-        self._in_list = True
-        self._safe_cmd(self.con.command_list_ok_begin, ())
+        self.lock.acquire()
+        try:
+            self._in_list = True
+            self.con.command_list_ok_begin()
+        except (ConnectionError, socket.error), e:
+            print "%s\n    reconnecting..." % e
+            self._connect()
+            self.con.command_list_ok_begin()
+        finally:
+            self.lock.release()
 
 
     def command_list_end(self):
-        self._safe_cmd(self.con.command_list_end, ())
-        self._in_list = False
+        self.lock.acquire()
+        ret = None
+        try:
+            ret = self.con.command_list_end()
+        finally:
+            self._in_list = False
+            self.lock.release()
+        return ret
 
 
     def crop(self, id=None):
@@ -330,16 +323,15 @@ class _Mpd_Instance:
             
             
     def getPlaylistByFile(self, fpath):
+        if self._playlistlength == 0:
+            return False
         item = self._playlistFiles.get(fpath, None)
         if item is None:
-            if self._playlistFilesFull:
-                return False
+            pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
+            if pl:
+                item = self._extendDbResult(pl)[0]
             else:
-                pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
-                if pl:
-                    item = self._extendDbResult(pl)[0]
-                else:
-                    item = False
+                item = False
             try:
                 self.lock.acquire()
                 self._playlistFiles[fpath] = item
@@ -429,6 +421,43 @@ class _Mpd_Instance:
         finally:
             self.lock.release()
         return ret
+        
+        
+    def password(self, pw):
+        self.lock.acquire()
+        try:
+            self._password = pw
+            _Poller.password = pw
+        except Exception, e:
+            print '-'*60
+            traceback.print_exc(file=sys.stdout)
+            print '-'*60
+        finally:
+            self.lock.release()
+        self._safe_cmd(self.con.password, pw)
+        _Poller.con.password(pw)
+            
+            
+    def raw(self, cmd):
+        t = []
+        self._safe_cmd(self.con.ping, [])
+        self.lock.acquire()
+        try:
+            self.con._write_line(cmd)
+            rl = self.con._read_line
+            line = rl()
+            while line is not None:
+                t.append(line)
+                line = rl()
+            t.append("OK\n")
+            return '\n'.join(t)
+        except Exception, e:
+            print '-'*60
+            traceback.print_exc(file=sys.stdout)
+            print '-'*60
+            return e.message
+        finally:
+            self.lock.release()
 
 
     def save(self, playlistName):
@@ -452,43 +481,15 @@ class _Mpd_Instance:
             finally:
                 self.lock.release()
         return ret
-        
-        
-    def password(self, pw):
-        self._password = pw
-        self._safe_cmd(self.con.password, pw)
-        self.lock.acquire()
-        try:
-            _Poller.password = pw
-            _Poller.con.password(pw)
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
-        finally:
-            self.lock.release()
             
             
-    def raw(self, cmd):
-        t = []
-        self.lock.acquire()
+    def setPlaylistFiles(self, setFiles=None):
+        files = dict(( (x['file'], x) for x in setFiles ))
         try:
-            self.con._write_line(cmd)
-            rl = self.con._read_line
-            line = rl()
-            while line is not None:
-                t.append(line)
-                line = rl()
-            t.append("OK\n")
-            return '\n'.join(t)
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
-            return e.message
+            self.lock.acquire()
+            self._playlistFiles.update(files)
         finally:
-            self.lock.release()
-        
+            self.lock.release()        
 
 
     def sync(self, changes=None):                       
@@ -531,9 +532,6 @@ class _Mpd_Instance:
                 self._playlistlength = int(s['playlistlength'])
                 if self._playlistlength == 0:
                     s['playlistname'] = 'Untitled'
-                    self._playlistFilesFull = True
-                else:
-                    self._playlistFilesFull = False
             
             if 'stored_playlist' in changes:
                 if self._dbcache.has_key('listplaylists'):

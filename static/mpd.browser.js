@@ -105,7 +105,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 			columns: cols,
 			defaults: {
 				width: 150,
-				sortable: true
+				sortable: (this.config.cmd != 'playlistinfo')
 			}
 		})
         		
