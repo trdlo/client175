@@ -536,18 +536,20 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
         }
     },
     db_refresh: function(){
+        var default_opt = {
+            params: {
+                start: 0, 
+                limit: mpd.PAGE_LIMIT
+            }
+        }
 		if (!this.store.lastOptions) {
-			this.store.load({params: {start: 0, limit: mpd.PAGE_LIMIT}})
+			this.store.load(default_opt)
 		} else {
             var pl = parseInt(mpd.status.playlistlength)
-            if (pl == 0) {
-                this.store.removeAll()
-                return true
-            }
             var opt = this.store.lastOptions
             var end = opt.params.limit
             if (end > pl) {
-                opt = {params: {start: 0, limit: mpd.PAGE_LIMIT}}
+                opt = default_opt
             }
 			this.store.load(opt)
 		}
