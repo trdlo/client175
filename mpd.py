@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import socket
+import socket, threading
 
 
 HELLO_PREFIX = "OK MPD "
@@ -49,6 +49,7 @@ class _NotConnected(object):
 class MPDClient(object):
     def __init__(self):
         self.iterate = False
+        self.lock = threading.RLock()
         self._reset()
         self._commands = {
             # Status Commands
@@ -137,7 +138,22 @@ class MPDClient(object):
         except KeyError:
             raise AttributeError("'%s' object has no attribute '%s'" %
                                  (self.__class__.__name__, attr))
-        return lambda *args: self._execute(attr, args, retval)
+        return lambda *args: self._execute_safe(attr, args, retval)
+
+    def _execute_safe(self, command, args, retval):
+        self.lock.acquire()
+        try:
+            return self._execute(command, args, retval)
+        except (ConnectionError, socket.error), e:
+            print "%s\n    reconnecting..." % e
+            try:
+                self.disconnect()
+            except:
+                pass
+            self.connect(self._host, self._port, self._password)
+            return self._execute(command, args, retval)
+        finally:
+            self.lock.release()
 
     def _execute(self, command, args, retval):
         if self._command_list is not None and not callable(retval):
@@ -341,7 +357,10 @@ class MPDClient(object):
             raise socket.error(msg)
         return sock
 
-    def connect(self, host='localhost', port=6600):
+    def connect(self, host, port, _password=None):
+        self._host = host
+        self._port = port
+        self._password = None
         if self._sock:
             raise ConnectionError("Already connected")
         if host.startswith("/"):
@@ -351,7 +370,10 @@ class MPDClient(object):
         self._rfile = self._sock.makefile("rb")
         self._wfile = self._sock.makefile("wb")
         try:
-            self._hello()
+            if _password:
+                self.password(_password)
+            else:
+                self._hello()
         except:
             self.disconnect()
             raise
@@ -373,6 +395,11 @@ class MPDClient(object):
             raise CommandListError("Not in command list")
         self._write_command("command_list_end")
         return self._fetch_command_list()
+
+    def password(self, _password):
+        self._password = _password
+        fn = self.__getattr__('password')
+        return fn(_password)
 
 
 def escape(text):

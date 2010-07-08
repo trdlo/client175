@@ -116,12 +116,7 @@ class Root:
             elif args[0] == 'playlist':
                 mpd.load(args[1])
             elif args[0] == 'search':
-                files = mpd.execute(('search', 'any', args[1]))
-                if files:
-                    mpd.command_list_ok_begin()
-                    for f in files:
-                        mpd.add(f['file'])
-                    mpd.command_list_end()
+                mpd.searchadd('any', args[1])
             else:
                 mpd.findadd(args[0], args[1])
         else:
@@ -222,8 +217,8 @@ class Root:
 
 
     def home(self, **kwargs):
-        dl = len(mpd.execute('list date'))
-        gl = len(mpd.execute('list genre'))
+        dl = len(mpd.list('date'))
+        gl = len(mpd.list('genre'))
         pl = len(mpd.listplaylists())
         tm = mpd_proxy.prettyDuration(mpd.state['db_playtime'])
         result = {}
@@ -495,7 +490,7 @@ class Root:
     def tree(self, cmd, node, mincount=0, **kwargs):
         if node == 'directory:':
             result = []
-            rawdata = mpd.execute('listall')
+            rawdata = mpd.listall()
             data = []
             for d in rawdata:
                 directory = d.get("directory")
