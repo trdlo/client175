@@ -323,7 +323,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         this.mon(this._fullColModel, 'hiddenchange', this.saveState, this, {delay: 100});
     },
 	playlists_refresh: function(){
-		if (this.cwd == 'playlist:') this.db_refresh()
+		if (this.cwd.search('playlist:') == 0) this.db_refresh()
 	},
     goTo: function(obj) {
         this.store.rejectChanges()
@@ -417,10 +417,12 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
         var p = g.findParentByType('panel')
         var t = ''
         if (dir != this.cwd || isSearch || isList) {
-            if (!isSearch && !isList) this.cwd = dir
-            if (isList) {
-				this.cwd = itemType + ":"
-			}
+            if (!isSearch) {
+                this.cwd = dir
+                if (itemType != 'home' && itemType != 'directory') {
+                    this.cwd = itemType + ":" + dir
+                }
+            }
             store.load({
 				params: {
 					'start': 0, 
