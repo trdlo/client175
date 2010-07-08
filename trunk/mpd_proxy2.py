@@ -25,6 +25,8 @@ from time import sleep
 import threading, re, os, socket
 from copy import deepcopy
 import sys, traceback
+from functools import partial
+
 
 _Instance = None
 _Poller = None
@@ -74,9 +76,7 @@ class _Mpd_Poller(threading.Thread):
         except:
             self.con = MPDClient()
 
-        self.con.connect(self._host, self._port)
-        if self._password:
-            self.con.password(self._password)
+        self.con.connect(self._host, self._port, self._password)
             
     
     def run(self):
@@ -87,13 +87,50 @@ class _Mpd_Poller(threading.Thread):
             try:
                 changes = self.con.idle()
                 _Instance.sync(changes)
-            except (ConnectionError, socket.error), e:
-                print "%s\n    reconnecting..." % e
+            except Exception, e:
+                print "ERROR IN MPD_POLLER: %s" % e
+                sleep(1.0)
                 self._connect()
                 _Instance.sync(['startup'])
         print "Exiting MPD Poller..."
                 
-                
+
+
+def cache_cmd_cls(fn):
+    def wrapper(self, *args):
+        command = (fn.__name__,) + args
+        print command
+        cached = self._dbcache.get(command)
+        if cached is not None:
+            return cached
+        data = fn(self, *args)   
+        self.lock.acquire()
+        try:
+            self._dbcache[command] = data
+        finally:
+            self.lock.release()
+        return data
+    return wrapper
+        
+        
+def cache_cmd_base(fn):
+    global _Instance
+    self = _Instance
+    def wrapper(*args):
+        command = (fn.__name__,) + args
+        print command
+        cached = self._dbcache.get(command)
+        if cached is not None:
+            return cached
+        data = fn(*args)   
+        self.lock.acquire()
+        try:
+            self._dbcache[command] = data
+        finally:
+            self.lock.release()
+        return data
+    return wrapper
+    
 
 class _Mpd_Instance:
     """
@@ -118,28 +155,15 @@ class _Mpd_Instance:
         self._playlistFiles = {}
         self._playlistlength = 0
         self._dbcache = {}
-        self._cache_cmds = ('list', 'lsinfo', 'find', 'search')
-        self._extendDb_cmds = ('lsinfo', 'find', 'search', 'playlistinfo', 
+        self._cache_cmds = ('list', 'listall', 'listallinfo', 'lsinfo', 'find', 'search')
+        self._extendDb_cmds = ('listallinfo', 'lsinfo', 'find', 'search', 'playlistinfo', 
                                 'playlistfind', 'playlistsearch', 'listplaylistinfo')
         self.lock = threading.RLock()
-        self._connect()
-
-
-    def __getattr__(self, name):
-        if name == 'list':
-            return self.list
-        elif name == 'listplaylists':
-            return self.listplaylists
-        elif name == 'load':
-            return self.load
-        elif name == 'save':
-            return self.save
-        else:
-            fn = self.con.__getattr__(name)
-
-        if name in self._extendDb_cmds:
-            return lambda *args: self._extendDbResult(self._safe_cmd(fn, args))
-        return lambda *args: self._safe_cmd(fn, args)
+        self.lock.acquire()
+        try:
+            self._connect()
+        finally:
+            self.lock.release()
 
 
     def _connect(self):
@@ -150,17 +174,20 @@ class _Mpd_Instance:
                 self.con = MPDClient()
         except:
             self.con = MPDClient()
+        self.con.connect(self._host, self._port, self._password)
 
-        try:
-            self.con.connect(self._host, self._port)
-        except ConnectionError, e:
-            print e
-            print "Retrying connection in 3 seconds..."
-            sleep(3.0)
-            self.con.connect(self._host, self._port)
+
+    def __getattr__(self, name):
+        fn = getattr(self.con, name)
+        if name in self._cache_cmds:
+            fn.__name__ = name
+            wrapped = cache_cmd_base(fn)
+        else:
+            wrapped = fn
             
-        if self._password:
-            self.con.password(self._password)
+        if name in self._extendDb_cmds:
+            return lambda *args: self._extendDbResult(wrapped(*args))
+        return wrapped
 
 
     def _extendDbResult(self, data):
@@ -178,7 +205,7 @@ class _Mpd_Instance:
                     item['title'] = item['file'].rsplit('/', 1)[-1]
             elif 'directory' in keys:
                 item['type'] = 'directory'
-                item['title'] = item['directory'].split('/')[-1]
+                item['title'] = item['directory'].rsplit('/', 1)[-1]
                 item['id'] = "directory:" + item['directory']
             elif 'playlist' in keys:
                 item['type'] = 'playlist'
@@ -190,53 +217,31 @@ class _Mpd_Instance:
                 item['id'] = keys[0] + ":" + item[keys[0]]
                 
         return data
-
-
-    def _safe_cmd(self, fn, args):
-        self.lock.acquire()
-        try:
-            return fn(*args)
-        except (ConnectionError, socket.error), e:
-            print "%s\n    reconnecting..." % e
-            self._connect()
-            return fn(*args)
-        finally:
-            self.lock.release()
         
         
     def command_list_ok_begin(self):
         self.lock.acquire()
         try:
-            self._in_list = True
             self.con.command_list_ok_begin()
-        except (ConnectionError, socket.error), e:
-            print "%s\n    reconnecting..." % e
-            self._connect()
-            self.con.command_list_ok_begin()
-        finally:
+        except Exception, e:
             self.lock.release()
+            raise
 
 
     def command_list_end(self):
-        self.lock.acquire()
-        ret = None
         try:
-            ret = self.con.command_list_end()
+            return self.con.command_list_end()
         finally:
-            self._in_list = False
             self.lock.release()
-        return ret
 
 
-    def crop(self, id=None):
-        if id is None:
+    def crop(self, pos=None):
+        if pos is None:
             pos = int(self.state['song'])
-            id = self.playlist[pos]['id']
-
         self.command_list_ok_begin()
-        for item in self.playlist:
-            if item['id'] <> id:
-                self.deleteid(item['id'])
+        for i in xrange(self._playlistlength-1, -1, -1):
+            if i != pos: 
+                self.con.delete(i)
         self.command_list_end()
 
 
@@ -254,10 +259,6 @@ class _Mpd_Instance:
         """
 
         if isinstance(command, str) or isinstance(command, unicode):
-            cached = self._dbcache.get(command)
-            if cached is not None:
-                return cached
-
             term = re.search('\s\"(.+)\"', command)
             if term:
                 cmdlist = command[:term.start(0)].split(" ")
@@ -265,61 +266,37 @@ class _Mpd_Instance:
             else:
                 cmdlist = command.split(" ")
         else:
-            cached = self._dbcache.get(' '.join(command))
-            if cached is not None:
-                return cached
-
-            if isinstance(command, tuple):
-                cmdlist = list(command)
-            elif isinstance(command, list):
-                cmdlist = command.copy()
-            else:
-                cmdlist = list(command)
-        cmd = cmdlist.pop(0)
-
-        result = self.__getattr__(cmd)(*cmdlist)
-        if cmd in self._cache_cmds:
-            self._dbcache[command] = result
+            cmdlist = list(command)
             
-        return result
+        cmd = cmdlist.pop(0)
+        return getattr(self, cmd)(*cmdlist)
 
 
     def execute_sorted(self, command, sortKey, sortReverse=False):
-        if type(command) not in (str, unicode):
-            command = ' '.join(command)
-        key = command + '_%s_%s' % (sortKey, sortReverse)
-        
+        key = (command, sortKey, sortReverse)
         cached = self._dbcache.get(key)
         if cached is not None:
             return cached
-
         result = self.execute(command)
         useLower = False
         if sortKey not in ('time', 'pos', 'songs'):
             useLower = True
         sorted_result = sorted(result, fieldSorter(sortKey, useLower), reverse=sortReverse)
         if command in self._cache_cmds:
-            self._dbcache[key] = sorted_result
-            
+            self.lock.acquire()
+            try:
+                self._dbcache[key] = sorted_result
+            finally:
+                self.lock.release()
         return sorted_result
 
 
-    def findadd(self, what, name):
-        end_in_list = False
-        if self._in_list:
-            end_in_list = True
-            self.command_list_end()
-
-        songs = self.execute(('find', what, name))
+    def findadd(self, type, what):
+        songs = self.find(type, what)
         self.command_list_ok_begin()
         for song in songs:
-            self.add(song['file'])
-
-        if end_in_list:
-            return False
-        else:
-            self.command_list_end()
-            return True
+            self.con.add(song['file'])
+        self.command_list_end()
             
             
     def getPlaylistByFile(self, fpath):
@@ -327,30 +304,26 @@ class _Mpd_Instance:
             return False
         item = self._playlistFiles.get(fpath, None)
         if item is None:
-            pl = self._safe_cmd(self.con.playlistfind, ('file', fpath))
+            pl = self.con.playlistfind('file', fpath)
             if pl:
                 item = self._extendDbResult(pl)[0]
             else:
                 item = False
+            self.lock.acquire()
             try:
-                self.lock.acquire()
                 self._playlistFiles[fpath] = item
             finally:
                 self.lock.release()
         return item
         
-
+        
+    @cache_cmd_cls
     def list(self, *args):
-        command = 'list ' + ' '.join(args)
-        cached = self._dbcache.get(command)
-        if cached is not None:
-            return cached
-            
         what = args[0]
-        data = self._safe_cmd(self.con.list, args)
+        data = self.con.list(*args)
         for index in range(len(data)):
             item = data[index]
-            c = self._safe_cmd(self.con.count, (what, item))
+            c = self.con.count(what, item)
             data[index] = {
                 'title': item,
                 'type': what,
@@ -359,27 +332,15 @@ class _Mpd_Instance:
                 'ptime': hmsFromSeconds(c['playtime']),
                 'songs': int(c['songs'])
             }
-        
-        try:
-            self.lock.acquire()
-            self._dbcache[command] = data
-        except Exception, e:
-            traceback.print_exc(file=sys.stdout)
-        finally:
-            self.lock.release()
         return data
 
 
+    @cache_cmd_cls
     def listplaylists(self, *args):
-        command = 'listplaylists'
-        cached = self._dbcache.get(command)
-        if cached is not None:
-            return cached
-            
-        data = self._safe_cmd(self.con.listplaylists, args)
+        data = self.con.listplaylists(*args)
         for index in range(len(data)):
             item = data[index]['playlist']
-            songs = self._safe_cmd(self.con.listplaylistinfo, (item,))
+            songs = self.con.listplaylistinfo(item)
             playtime = sum([int(x.get('time', 0)) for x in songs])
             data[index] = {
                 'title': item,
@@ -389,14 +350,6 @@ class _Mpd_Instance:
                 'time': playtime,
                 'ptime': hmsFromSeconds(playtime)
             }
-            
-        try:
-            self.lock.acquire()
-            self._dbcache[command] = data
-        except Exception, e:
-            traceback.print_exc(file=sys.stdout)
-        finally:
-            self.lock.release()
         return data
 
 
@@ -407,20 +360,15 @@ class _Mpd_Instance:
             if replace:
                 if self.state['state'] == 'play':
                     wasPlaying = True
-                self._safe_cmd(self.con.clear, [])
+                self.con.clear()
                 self.state['playlistname'] = playlistName
             elif int(self.state['playlistlength']) == 0:
                 self.state['playlistname'] = playlistName
-            ret = self._safe_cmd(self.con.load, [playlistName])
+            self.con.load(playlistName)
             if wasPlaying:
-                self._safe_cmd(self.con.play, ['0'])
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
+                self.con.play(0)
         finally:
             self.lock.release()
-        return ret
         
         
     def password(self, pw):
@@ -428,19 +376,15 @@ class _Mpd_Instance:
         try:
             self._password = pw
             _Poller.password = pw
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
+            self.con.password(pw)
+            _Poller.con.password(pw)
         finally:
             self.lock.release()
-        self._safe_cmd(self.con.password, pw)
-        _Poller.con.password(pw)
             
             
     def raw(self, cmd):
         t = []
-        self._safe_cmd(self.con.ping, [])
+        self.con.ping()
         self.lock.acquire()
         try:
             self.con._write_line(cmd)
@@ -451,11 +395,6 @@ class _Mpd_Instance:
                 line = rl()
             t.append("OK\n")
             return '\n'.join(t)
-        except Exception, e:
-            print '-'*60
-            traceback.print_exc(file=sys.stdout)
-            print '-'*60
-            return e.message
         finally:
             self.lock.release()
 
@@ -463,28 +402,31 @@ class _Mpd_Instance:
     def save(self, playlistName):
         OK = False
         try:
-            ret = self._safe_cmd(self.con.save, [playlistName])
+            self.con.save(playlistName)
             OK = True
         except MPDError, e:
             if '{save} Playlist already exists' in str(e):
-                self._safe_cmd(self.con.rm, [playlistName])
-                ret = self._safe_cmd(self.con.save, [playlistName])
+                self.con.rm(playlistName)
+                self.con.save(playlistName)
                 OK = True
         if OK:
             self.lock.acquire()
             try:
                 self.state['playlistname'] = playlistName
-            except Exception, e:
-                print '-'*60
-                traceback.print_exc(file=sys.stdout)
-                print '-'*60
             finally:
                 self.lock.release()
-        return ret
+
+
+    def searchadd(self, type, what):
+        songs = self.con.search(type, what)
+        self.command_list_ok_begin()
+        for song in songs:
+            self.con.add(song['file'])
+        self.command_list_end()
             
             
     def setPlaylistFiles(self, songList):
-        files = dict(( (x['file'], x) for x in songList ))
+        files = dict( ((x['file'], x) for x in songList) )
         try:
             self.lock.acquire()
             self._playlistFiles.update(files)
@@ -546,6 +488,7 @@ class _Mpd_Instance:
             self.lock.release()
 
 
+
 def hmsFromSeconds(seconds):
     seconds = int(seconds)
     if not seconds:
@@ -584,6 +527,7 @@ def prettyDuration(sec):
         _str += '%s minutes, %s seconds' % (m, sec)
         
     return _str
+
 
 
 def fieldSorter(field, useLower):
