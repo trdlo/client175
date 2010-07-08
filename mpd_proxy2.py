@@ -96,33 +96,13 @@ class _Mpd_Poller(threading.Thread):
                 
 
 
-def cache_cmd_cls(fn):
+def cache_cmd(fn):
     def wrapper(self, *args):
         command = (fn.__name__,) + args
-        print command
         cached = self._dbcache.get(command)
         if cached is not None:
             return cached
         data = fn(self, *args)   
-        self.lock.acquire()
-        try:
-            self._dbcache[command] = data
-        finally:
-            self.lock.release()
-        return data
-    return wrapper
-        
-        
-def cache_cmd_base(fn):
-    global _Instance
-    self = _Instance
-    def wrapper(*args):
-        command = (fn.__name__,) + args
-        print command
-        cached = self._dbcache.get(command)
-        if cached is not None:
-            return cached
-        data = fn(*args)   
         self.lock.acquire()
         try:
             self._dbcache[command] = data
@@ -155,7 +135,7 @@ class _Mpd_Instance:
         self._playlistFiles = {}
         self._playlistlength = 0
         self._dbcache = {}
-        self._cache_cmds = ('list', 'listall', 'listallinfo', 'lsinfo', 'find', 'search')
+        self._cache_cmds = ('listall', 'listallinfo', 'lsinfo', 'find', 'search')
         self._extendDb_cmds = ('listallinfo', 'lsinfo', 'find', 'search', 'playlistinfo', 
                                 'playlistfind', 'playlistsearch', 'listplaylistinfo')
         self.lock = threading.RLock()
@@ -180,14 +160,25 @@ class _Mpd_Instance:
     def __getattr__(self, name):
         fn = getattr(self.con, name)
         if name in self._cache_cmds:
-            fn.__name__ = name
-            wrapped = cache_cmd_base(fn)
-        else:
-            wrapped = fn
-            
+            def wrapper(*args):
+                command = (name,) + args
+                cached = self._dbcache.get(command)
+                if cached is not None:
+                    return cached
+                if name in self._extendDb_cmds:
+                    data = self._extendDbResult(fn(*args))
+                else:
+                    data = fn(*args)
+                self.lock.acquire()
+                try:
+                    self._dbcache[command] = data
+                finally:
+                    self.lock.release()
+                return data
+            return wrapper
         if name in self._extendDb_cmds:
-            return lambda *args: self._extendDbResult(wrapped(*args))
-        return wrapped
+            return lambda *args: self._extendDbResult(fn(*args))
+        return fn
 
 
     def _extendDbResult(self, data):
@@ -317,7 +308,7 @@ class _Mpd_Instance:
         return item
         
         
-    @cache_cmd_cls
+    @cache_cmd
     def list(self, *args):
         what = args[0]
         data = self.con.list(*args)
@@ -335,12 +326,12 @@ class _Mpd_Instance:
         return data
 
 
-    @cache_cmd_cls
+    @cache_cmd
     def listplaylists(self, *args):
         data = self.con.listplaylists(*args)
         for index in range(len(data)):
             item = data[index]['playlist']
-            songs = self.con.listplaylistinfo(item)
+            songs = self.listplaylistinfo(item)
             playtime = sum([int(x.get('time', 0)) for x in songs])
             data[index] = {
                 'title': item,
@@ -418,7 +409,7 @@ class _Mpd_Instance:
 
 
     def searchadd(self, type, what):
-        songs = self.con.search(type, what)
+        songs = self.search(type, what)
         self.command_list_ok_begin()
         for song in songs:
             self.con.add(song['file'])
@@ -476,8 +467,9 @@ class _Mpd_Instance:
                     s['playlistname'] = 'Untitled'
             
             if 'stored_playlist' in changes:
-                if self._dbcache.has_key('listplaylists'):
-                    del self._dbcache['listplaylists']
+                for key in self._dbcache.keys():
+                    if key[0].startwith('listplaylist'):
+                        del self._dbcache[key]
                 s['playlists'] = datetime.utcnow().ctime()
                 
             self.state.update(s)

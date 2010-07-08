@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Updated 2010 by Chris Seickel to make the class thread safe and add
+# auto reconnect.
+
 import socket, threading
 
 
@@ -370,10 +373,9 @@ class MPDClient(object):
         self._rfile = self._sock.makefile("rb")
         self._wfile = self._sock.makefile("wb")
         try:
+            self._hello()
             if _password:
                 self.password(_password)
-            else:
-                self._hello()
         except:
             self.disconnect()
             raise
