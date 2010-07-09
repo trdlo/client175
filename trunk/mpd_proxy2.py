@@ -19,7 +19,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #       MA 02110-1301, USA.
 
-from mpd import MPDClient, ConnectionError, MPDError
+from mpd import *
 from datetime import datetime
 from time import sleep
 import threading, re, os, socket
@@ -129,15 +129,14 @@ class _Mpd_Instance:
         self._password = password
         self._in_list = False
         self.con = None
-        self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
+        self.include_playlist_counts = True
         self.lastcheck = datetime.utcnow()
+        self.state = {'db_update': 0, 'playlist': 0, 'playlistname': 'Untitled'}
         self.state['playlists'] = self.lastcheck.ctime()
         self._playlistFiles = {}
         self._playlistlength = 0
         self._dbcache = {}
-        self._cache_cmds = ('listall', 'listallinfo', 'lsinfo', 'find', 'search')
-        self._extendDb_cmds = ('listallinfo', 'lsinfo', 'find', 'search', 'playlistinfo', 
-                                'playlistfind', 'playlistsearch', 'listplaylistinfo')
+        self._cache_cmds = ('listall', 'listallinfo', 'lsinfo', 'find', 'search', 'listplaylistinfo')
         self.lock = threading.RLock()
         self.lock.acquire()
         try:
@@ -165,10 +164,7 @@ class _Mpd_Instance:
                 cached = self._dbcache.get(command)
                 if cached is not None:
                     return cached
-                if name in self._extendDb_cmds:
-                    data = self._extendDbResult(fn(*args))
-                else:
-                    data = fn(*args)
+                data = fn(*args)
                 self.lock.acquire()
                 try:
                     self._dbcache[command] = data
@@ -176,38 +172,7 @@ class _Mpd_Instance:
                     self.lock.release()
                 return data
             return wrapper
-        if name in self._extendDb_cmds:
-            return lambda *args: self._extendDbResult(fn(*args))
         return fn
-
-
-    def _extendDbResult(self, data):
-        for item in data:
-            keys = item.keys()
-            if 'file' in keys:
-                p = item.get('pos')
-                if p is None:
-                    item['id'] = "file:" + item['file']
-                else:
-                    item['pos'] = int(p) + 1
-                item['type'] = 'file'
-                item['ptime'] = hmsFromSeconds(item.get('time', 0))
-                if not item.get('title'):
-                    item['title'] = item['file'].rsplit('/', 1)[-1]
-            elif 'directory' in keys:
-                item['type'] = 'directory'
-                item['title'] = item['directory'].rsplit('/', 1)[-1]
-                item['id'] = "directory:" + item['directory']
-            elif 'playlist' in keys:
-                item['type'] = 'playlist'
-                item['title'] = item['playlist']
-                item['id'] = "playlist:" + item['playlist']
-            else:
-                item['type'] = keys[0]
-                item['title'] = item[keys[0]]
-                item['id'] = keys[0] + ":" + item[keys[0]]
-                
-        return data
         
         
     def command_list_ok_begin(self):
@@ -327,20 +292,30 @@ class _Mpd_Instance:
 
 
     @cache_cmd
-    def listplaylists(self, *args):
-        data = self.con.listplaylists(*args)
+    def listplaylists(self, includeCounts=None):
+        if includeCounts is None:
+            includeCounts = self.include_playlist_counts
+            
+        data = self.con.listplaylists()
         for index in range(len(data)):
             item = data[index]['playlist']
-            songs = self.listplaylistinfo(item)
-            playtime = sum([int(x.get('time', 0)) for x in songs])
-            data[index] = {
-                'title': item,
-                'type': 'playlist',
-                'playlist': item,
-                'songs': len(songs),
-                'time': playtime,
-                'ptime': hmsFromSeconds(playtime)
-            }
+            if includeCounts:
+                songs = self.listplaylistinfo(item)
+                playtime = sum([int(x.get('time', 0)) for x in songs])
+                data[index] = {
+                    'title': item,
+                    'type': 'playlist',
+                    'playlist': item,
+                    'songs': len(songs),
+                    'time': playtime,
+                    'ptime': hmsFromSeconds(playtime)
+                }
+            else:
+                data[index] = {
+                    'title': item,
+                    'type': 'playlist',
+                    'playlist': item
+                }
         return data
 
 
@@ -478,19 +453,6 @@ class _Mpd_Instance:
 
         finally:
             self.lock.release()
-
-
-
-def hmsFromSeconds(seconds):
-    seconds = int(seconds)
-    if not seconds:
-        return ''
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    if h == 0:
-        return "%d:%02d" % (m, s)
-    else:
-        return "%d:%02d:%02d" % (h, m, s)
 
 
 

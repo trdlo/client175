@@ -68,6 +68,7 @@ PASSWORD = cherrypy.config.get('mpd_password', PASSWORD)
 
 
 mpd = mpd_proxy.Mpd(HOST, PORT, PASSWORD)
+mpd.include_playlist_counts = cherrypy.config.get('include_playlist_counts', True)
 cs = CoverSearch(COVERS_DIR, LOCAL_COVERS)
 
 
@@ -289,8 +290,8 @@ class Root:
                         d.append(item)
                         break
         return d
-
-
+    
+    
     def lyrics(self, title, artist, **kwargs):
         # proxy to http://www.lyricsplugin.com to get around
         # same-origin policy of browsers

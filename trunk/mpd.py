@@ -49,6 +49,51 @@ class _NotConnected(object):
     def _dummy(*args):
         raise ConnectionError("Not connected")
 
+
+def extend_file(item):
+    p = item.get('pos')
+    if p is None:
+        item['id'] = "file:" + item['file']
+    else:
+        item['pos'] = int(p) + 1
+    item['type'] = 'file'
+    item['ptime'] = hmsFromSeconds(item.get('time', 0))
+    if not item.get('title'):
+        item['title'] = item['file'].rsplit('/', 1)[-1]
+    return item
+    
+        
+def extend_database(item):
+    keys = item.keys()
+    if 'file' in keys:
+        item = extend_file(item)
+    elif 'directory' in keys:
+        item['type'] = 'directory'
+        item['title'] = item['directory'].rsplit('/', 1)[-1]
+        item['id'] = "directory:" + item['directory']
+    elif 'playlist' in keys:
+        item['type'] = 'playlist'
+        item['title'] = item['playlist']
+        item['id'] = "playlist:" + item['playlist']
+    else:
+        item['type'] = keys[0]
+        item['title'] = item[keys[0]]
+        item['id'] = keys[0] + ":" + item[keys[0]]
+    return item
+        
+        
+def hmsFromSeconds(seconds):
+    seconds = int(seconds)
+    if not seconds:
+        return ''
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    if h == 0:
+        return "%d:%02d" % (m, s)
+    else:
+        return "%d:%02d:%02d" % (h, m, s)
+        
+        
 class MPDClient(object):
     def __init__(self):
         self.iterate = False
@@ -157,7 +202,7 @@ class MPDClient(object):
             return self._execute(command, args, retval)
         finally:
             self.lock.release()
-
+                    
     def _execute(self, command, args, retval):
         if self._command_list is not None and not callable(retval):
             raise CommandListError("%s not allowed in command list" % command)
@@ -224,8 +269,9 @@ class MPDClient(object):
 
     def _read_objects(self, delimiters=[]):
         obj = {}
+        m = self._TAGMAP.get
         for key, value in self._read_pairs():
-            key = key.lower()
+            key = m(key, key)
             if obj:
                 if key in delimiters:
                     yield obj
@@ -278,6 +324,7 @@ class MPDClient(object):
         read_line = self._read_line
         obj = {}
         line = read_line()
+        m = self._TAGMAP.get
         while line is not None:
             try:
                 key, value = line.split(separator, 1)
@@ -288,7 +335,7 @@ class MPDClient(object):
                     yield obj
                     obj = {}
             else:
-                key = key.lower()
+                key = m(key, key)
             obj[key] = value    
             line = read_line()   
         if obj:
@@ -296,13 +343,13 @@ class MPDClient(object):
         raise StopIteration
 
     def _fetch_songs(self):
-        return self._wrap_iterator(self._read_songs())
+        return map(extend_file, self._read_songs())
 
     def _fetch_playlists(self):
         return self._fetch_objects(["playlist"])
 
     def _fetch_database(self):
-        return self._fetch_objects(["file", "directory", "playlist"])
+        return map(extend_database, self._read_objects(["file", "directory", "playlist"]))
 
     def _fetch_outputs(self):
         return self._fetch_objects(["outputid"])
@@ -374,6 +421,8 @@ class MPDClient(object):
         self._wfile = self._sock.makefile("wb")
         try:
             self._hello()
+            self._TAGS = self.tagtypes()
+            self._TAGMAP = dict( ((x, x.lower()) for x in self._TAGS) )
             if _password:
                 self.password(_password)
         except:
