@@ -100,9 +100,12 @@ mpd.init = function(){
 		tb.addPlaylistTab()
 	}
     mpd.events.on('title', function(){
-        var s = mpd.status.title
-        if (s.artist) s += ' by ' + mpd.status.artist
-        document.title = 'Client175: ' + s
+        var s = ' (' + location.hostname + ')'
+        if (mpd.status.state != 'stop' && mpd.status.title > '') {
+            var s = ': ' + mpd.status.title
+            if (mpd.status.artist) s += ' by ' + mpd.status.artist
+        }
+        document.title = 'Client175' + s
     })
     mpd.checkStatus.delay(100)
 }

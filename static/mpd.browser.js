@@ -361,7 +361,7 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 				break;
 			case 'search':
 				isSearch = true;
-				cmd = 'search any "' + dir + '"'
+				cmd = 'search smart "' + dir + '"'
 				break;
 			case 'directory':
 				cmd = 'lsinfo "' + dir + '"'

@@ -382,6 +382,24 @@ class _Mpd_Instance:
             finally:
                 self.lock.release()
 
+    
+    @cache_cmd
+    def search(self, type, what):
+        if type != 'smart':
+            return self.con.search(type, what)
+        data = []
+        index = []
+        for x in ('title', 'artist', 'albumartist', 'album', 'file'):
+            for item in self.con.search(x, what):
+                f = item['file']
+                if f not in index:
+                    index.append(f)
+                    data.append(item)
+            if len(index) > 200:
+                break
+        return data
+        
+
 
     def searchadd(self, type, what):
         songs = self.search(type, what)
@@ -422,9 +440,13 @@ class _Mpd_Instance:
             if 'startup' in changes:
                 changes = ['database', 'playlist', 'stored_playlist']
                 
-            s = self.con.stats()
+            s = dict( ((x, None) for x in self.con._TAGS_LOWER) )
+            s.update(self.con.stats())
             s.update(self.con.status())
-            t = s.get('time', '0:0').split(':')
+            t = s.get('time')
+            if t is None:
+                t = '0:0'
+            t = t.split(':')
             s['elapsed'] = t[0]
             if s.get('state', '') != 'stop':
                 item = self.con.currentsong()
@@ -450,7 +472,9 @@ class _Mpd_Instance:
             self.state.update(s)
             self.lastcheck = datetime.utcnow()
             return self.state
-
+        except Exception, e:
+            print e
+            raise
         finally:
             self.lock.release()
 
