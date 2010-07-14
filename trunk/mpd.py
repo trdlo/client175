@@ -422,7 +422,9 @@ class MPDClient(object):
         try:
             self._hello()
             self._TAGS = self.tagtypes()
-            self._TAGMAP = dict( ((x, x.lower()) for x in self._TAGS) )
+            self._TAGS.extend(['Pos', 'Time', 'Id'])
+            self._TAGS_LOWER = map(str.lower, self._TAGS)
+            self._TAGMAP = dict(zip(self._TAGS, self._TAGS_LOWER))
             if _password:
                 self.password(_password)
         except:

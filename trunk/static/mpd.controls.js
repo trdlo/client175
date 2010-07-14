@@ -196,8 +196,8 @@ mpd.Controls = Ext.extend(Ext.Container, {
                     id: 'txtCurrentSong',
                     html: '<div style="font-size:11px;cursor:pointer">' +
                         '<b id="txtTitle" style="font-size:14px">Title</b><br>' +
-                        ' by <i id="txtArtist">Artist</i>' +
-                        ' from <span id="txtAlbum">Album</span>' +
+                        ' by <i id="txtArtist"></i>' +
+                        ' from <span id="txtAlbum"></span>' +
                         '</div>',
                     listeners: {
 						'afterrender': function (me) {
@@ -284,15 +284,18 @@ mpd.Controls = Ext.extend(Ext.Container, {
         })
         
         mpd.events.on('title', function(){
-            Ext.getDom('txtTitle').innerHTML = mpd.status.title
+            var t = mpd.status.title
+            Ext.getDom('txtTitle').innerHTML = t || 'Unknown'
         })
         
         mpd.events.on('artist', function(){
-            Ext.getDom('txtArtist').innerHTML = mpd.status.artist
+            var a = mpd.status.artist
+            Ext.getDom('txtArtist').innerHTML = a || 'Unknown'
         })
         
         mpd.events.on('album', function(){
-            Ext.getDom('txtAlbum').innerHTML = mpd.status.album
+            var a = mpd.status.album
+            Ext.getDom('txtAlbum').innerHTML = a || 'Unknown'
         })
 
         mpd.events.on('random', function () {
