@@ -4,10 +4,8 @@
 
  * Requires MPD version 15+
  * Playlist loading vastly improved, large playlists are no longer an issue.
- * Added 'include_playlist_counts' option to site.conf, to disable counting length
-and playtime when listing stored playlists
- * Improved search feature to return artists and albums first, then songs with the search
-term in title tag, instead of just a big list of songs with matches in any tag
+ * Added 'include_playlist_counts' option to site.conf, to disable counting length and playtime when listing stored playlists
+ * Improved search feature to return artists and albums first, then songs with the search term in title tag, instead of just a big list of songs with matches in any tag
  * Lots of code cleanup and bug fixes on the server
 
 
