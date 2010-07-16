@@ -117,7 +117,7 @@ class Root:
             elif args[0] == 'playlist':
                 mpd.load(args[1])
             elif args[0] == 'search':
-                mpd.searchadd('any', args[1])
+                mpd.searchadd('smart', args[1])
             else:
                 mpd.findadd(args[0], args[1])
         else:
