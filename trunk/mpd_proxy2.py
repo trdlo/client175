@@ -272,22 +272,22 @@ class _Mpd_Instance:
                 self.lock.release()
         return item
         
+    def _extend_list_item(self, what, item):
+        c = self.con.count(what, item)
+        return {
+            'title': item,
+            'type': what,
+            what: item,
+            'time': c['playtime'],
+            'ptime': hmsFromSeconds(c['playtime']),
+            'songs': int(c['songs'])
+        }
+        
         
     @cache_cmd
     def list(self, *args):
         what = args[0]
-        data = self.con.list(*args)
-        for index in range(len(data)):
-            item = data[index]
-            c = self.con.count(what, item)
-            data[index] = {
-                'title': item,
-                'type': what,
-                what: item,
-                'time': c['playtime'],
-                'ptime': hmsFromSeconds(c['playtime']),
-                'songs': int(c['songs'])
-            }
+        data = [self._extend_list_item(what, x) for x in self.con.list(*args)]
         return data
 
 
@@ -387,16 +387,11 @@ class _Mpd_Instance:
     def search(self, type, what):
         if type != 'smart':
             return self.con.search(type, what)
-        data = []
-        index = []
-        for x in ('title', 'artist', 'albumartist', 'album', 'file'):
-            for item in self.con.search(x, what):
-                f = item['file']
-                if f not in index:
-                    index.append(f)
-                    data.append(item)
-            if len(index) > 200:
-                break
+        artists = set([x['artist'] for x in self.con.search('artist', what)])
+        albums = set([x['album'] for x in self.con.search('album', what)])
+        data = [self._extend_list_item('artist', x) for x in artists]
+        data.extend([self._extend_list_item('album', x) for x in albums])
+        data.extend(self.con.search('title', what))
         return data
         
 
