@@ -22,3 +22,17 @@ A running MPD daemon (at least version 14.0) and python 2.6 are all that you nee
   * Edit site.conf
   * Open a terminal, cd into the directory you extracted to, and run the server:  {{{python server.py}}}
   * Open a web browser to http://localhost:8080/static/index.html
+
+
+===Run on Startup: Upstart conf file===
+
+Here is an example provided by chrissavery for starting the server when mpd starts on systems using Upstart (such as ubuntu.)  You should use the run_as option in site.conf to drop down to a restricted user (also provided by chrissavery.)
+
+client175.conf:
+{{{# init file for client175 
+
+start on started mpd
+stop on stopping mpd
+
+exec /usr/bin/python /opt/client175/server.py
+}}}
