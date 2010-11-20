@@ -2,10 +2,12 @@
 ==Introduction==
 This is intended to be run on the same server as mpd and will default to connecting to localhost:6600.  It will, however, use the MPD_HOST and MPD_PORT environment variables if they exist.  Tag editing will only work if the files are accessible and writable by the user running the server and the music_directory option is set correctly in site.conf.
 
+----
 
 ==Requirements==
 A running MPD daemon (at least version 14.0) and python 2.6 are all that you need.
 
+----
 
 ==Installation and Setup==
 
@@ -23,13 +25,16 @@ A running MPD daemon (at least version 14.0) and python 2.6 are all that you nee
   * Open a terminal, cd into the directory you extracted to, and run the server:  {{{python server.py}}}
   * Open a web browser to http://localhost:8080/static/index.html
 
+----
 
-===Run on Startup: Upstart conf file===
+==Run on Startup==
+===Upstart conf file===
 
 Here is an example provided by chrissavery for starting the server when mpd starts on systems using Upstart (such as ubuntu.)  You should use the run_as option in site.conf to drop down to a restricted user (also provided by chrissavery.)
 
 client175.conf:
-{{{# init file for client175 
+{{{
+# init file for client175 
 
 start on started mpd
 stop on stopping mpd
