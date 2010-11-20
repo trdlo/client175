@@ -139,6 +139,15 @@ Website:  http://p.yusukekamiyamane.com/
 
 
 
+lyricwiki.py
+========================================================================
+Copyright 2009 Amr Hassan <amr.hassan@gmail.com>
+GPL 2 or later.
+
+License:  metadata/COPYING.txt
+
+
+
 Metadata (from Exaile 0.3.1.1)
 ========================================================================
 Copyright (C) 2008-2009 Adam Olsen 
