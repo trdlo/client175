@@ -20,7 +20,7 @@
 #       MA 02110-1301, USA.
 
 
-import cherrypy, json, os, urllib, urllib2
+import cherrypy, json, os, pwd, urllib, urllib2
 from BeautifulSoup import BeautifulSoup
 from time import sleep
 from datetime import datetime, timedelta
@@ -49,6 +49,7 @@ if LOCAL_COVERS:
 HOST = "localhost"
 PORT = 6600
 PASSWORD = None
+RUN_AS = pwd.getpwuid(os.getuid())[0]
 
 if os.environ.has_key("MPD_HOST"):
     mpd_host = str(os.environ["MPD_HOST"])
@@ -65,6 +66,7 @@ if os.environ.has_key("MPD_PORT"):
 HOST = cherrypy.config.get('mpd_host', HOST)
 PORT = cherrypy.config.get('mpd_port', PORT)
 PASSWORD = cherrypy.config.get('mpd_password', PASSWORD)
+RUN_AS = cherrypy.config.get('run_as', RUN_AS)
 
 
 mpd = mpd_proxy.Mpd(HOST, PORT, PASSWORD)
@@ -74,12 +76,21 @@ cs = CoverSearch(COVERS_DIR, LOCAL_COVERS)
 
 class Root:
 
+    os.setuid(pwd.getpwnam(RUN_AS)[2])
     static = cherrypy.tools.staticdir.handler(
                 section="/static",
                 dir=os.path.join(LOCAL_DIR, "static"),
             )
 
 
+    def check_username_and_password(username, password):
+        if username == password:
+            cherrypy.session['username'] = username
+            return False
+        return "Bad Login"
+    cherrypy.config.update({'tools.session_auth.check_username_and_password': check_username_and_password})
+    
+    
     def _error_page_501(status, message, traceback, version):
         return message
     cherrypy.config.update({'error_page.501': _error_page_501})
@@ -461,7 +472,7 @@ class Root:
             
         if limit:
             data = result['data']
-            
+                    
         for i in range(len(data)):
             d = data[i]
             if d['type'] == 'file':
