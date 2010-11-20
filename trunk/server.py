@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 import mpd_proxy2 as mpd_proxy
 from mpd import MPDError
 from covers import CoverSearch
+import lyricwiki
 import metadata
 from metadata._base import NotReadable, NotWritable
 
@@ -304,18 +305,9 @@ class Root:
     
     
     def lyrics(self, title, artist, **kwargs):
-        # proxy to http://www.lyricsplugin.com to get around
-        # same-origin policy of browsers
-        artist = urllib.quote(artist.strip())
-        title = urllib.quote(title.strip())
-        url = "http://www.lyricsplugin.com/winamp03/plugin/?artist=%s&title=%s"
-        sock = urllib.urlopen( url % (artist,title) )
-        text = sock.read()
-        sock.close()
-        soup = BeautifulSoup(text)
-        div = soup.find("div", id="lyrics")
-        if div:
-            return "".join([str(x) for x in div.contents]).strip() 
+        txt = lyricwiki.get_lyrics(artist, title)
+        if txt:
+            return txt.replace("\n", "<br/>")
         return "Not Found"
     lyrics.exposed = True
 
