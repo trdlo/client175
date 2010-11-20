@@ -149,7 +149,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
             mpd.events.un('playlist', this.db_refresh, this)
         }, this)
 
-        var pstyle = Ext.value(config.playlistStyle, '3line')
+        var pstyle = Ext.state.Manager.get('playlistStyle', 'albumcovers')
         this.setList(pstyle)
 
         this.onHover = function(evt, el) {
@@ -534,6 +534,7 @@ mpd.sidebar.Playlist = Ext.extend(Ext.Panel, {
         } else {
             self.list = new_list
         }
+        Ext.state.Manager.set('playlistStyle', pstyle)
     },
     db_refresh: function(){
         var default_opt = {

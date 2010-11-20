@@ -22,10 +22,6 @@ mpd.init = function(){
 	if (playlistLocation == 'sidebar') {
 		sidebarItems.push({
 			xtype: 'playlist_sidebar',
-			//playlistStyle: 'titles',
-			//playlistStyle: '3line',
-			//playlistStyle: 'albums',
-			playlistStyle: 'albumcovers',
 			iconCls: 'icon-playlist',
 		})
 	}

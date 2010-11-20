@@ -262,7 +262,8 @@ class _Mpd_Instance:
         if item is None:
             pl = self.con.playlistfind('file', fpath)
             if pl:
-                item = self._extendDbResult(pl)[0]
+                item = pl[0]
+                item['pos'] = int(item['pos']) + 1
             else:
                 item = False
             self.lock.acquire()
@@ -435,6 +436,7 @@ class _Mpd_Instance:
             if 'startup' in changes:
                 changes = ['database', 'playlist', 'stored_playlist']
                 
+            print changes
             s = dict( ((x, None) for x in self.con._TAGS_LOWER) )
             s.update(self.con.stats())
             s.update(self.con.status())
