@@ -1,5 +1,13 @@
 #summary Overview of changes between versions.
 
+== 0.4 Released November 20, 2010 ==
+
+ * Switched to LyricsWiki lookup
+ * Fixed bug with mpd passwords
+ * Added 'run_as' option
+ * Fixed bug with adding to playlist from a paged list
+
+
 == 0.3 Released July 16, 2010 ==
 
  * Requires MPD version 15+
