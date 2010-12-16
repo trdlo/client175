@@ -32,6 +32,9 @@ div.add:hover {
 	opacity: 1.0 !important;
 	-khtml-opacity: 1.0 !important;
 }
+.icon-add-url {
+	background: url("icons/fugue/globe--plus.png") no-repeat !important;
+}
 .icon-album {
 	background: url("icons/fugue/disc.png") no-repeat !important;
 }
@@ -101,6 +104,15 @@ div.add:hover {
 	background: url("images/next.png") no-repeat !important;
 	height: 22px !important;
 	width: 32px !important;
+}
+.icon-outputs {
+	background: url("icons/fugue/speaker.png") no-repeat !important;
+}
+.icon-output-off {
+	background: url("icons/fugue/output-off.png") no-repeat !important;
+}
+.icon-output-on {
+	background: url("icons/fugue/output-on.png") no-repeat !important;
 }
 .icon-pause {
 	background: url("images/pause.png") no-repeat !important;

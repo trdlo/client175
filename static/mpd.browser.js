@@ -535,7 +535,25 @@ mpd.browser.GridPanel = Ext.extend(Ext.grid.GridPanel, {
 					iconCls: 'icon-add',
 					handler: function(){mpd.cmd(['add', itemType, dir])}
 				})
-			}
+			} else {
+                tb.add("->")
+                tb.addButton({
+                    text: 'Update Database',
+                    iconCls: 'icon-refresh',
+                    handler: function(me){
+                        mpd.cmd(['update', '/'])
+                    },
+                    listeners: {
+                        'afterrender': function(me){
+                            mpd.events.on('updating_db', me.setDisabled, me)
+                            me.setDisabled(mpd.status['updating_db'])
+                        },
+                        'beforedestroy': function(me){
+                            mpd.events.un('updating_db', me.setDisabled, me)
+                        }
+                    }                            
+                })
+            }
 				
 			p.setTitle(t)
 			p.setIconClass('icon-'+itemType)
@@ -946,12 +964,28 @@ mpd.browser.TreePanel = Ext.extend(Ext.tree.TreePanel, {
                     type: 'directory',
                     directory: '/',
                     cmd: 'lsinfo'
+                }, 
+                {
+                    nodeType: 'async',
+                    id: 'outputs:',
+                    text: '<b>Outputs</b>',
+                    iconCls: 'icon-outputs',
+                    type: 'output',
+                    cmd: 'outputs'
                 }] 
             }),
             rootVisible: false,
             listeners: {
                 'click': function(node) {
 					var attr = node.attributes
+                    if (attr.type == 'output') {
+                        if (attr.id != 'outputs:') {
+                            cb = node.parentNode.reload.createDelegate(node.parentNode)
+                            cmd = (attr.iconCls == 'icon-output-on') ? 'disableoutput' : 'enableoutput'
+                            mpd.cmd([cmd, attr.id], cb)
+                        }
+                        return null
+                    }
 					var tb = Ext.getCmp('dbtabbrowser')
 					if (attr.type && tb) {
 						tb.getActiveBrowser().goTo(attr)

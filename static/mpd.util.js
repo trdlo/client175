@@ -247,6 +247,18 @@ mpd.util.createPlaylistToolbar = function () {
 				handler: function (btn) {
 					mpd.util.playlistDialog.showSave(btn.el)
 				}
+			},
+			{
+				xtype: 'button',
+				iconCls: "icon-add-url",
+				tooltip: 'Add URL',
+				handler: function (btn) {
+					Ext.Msg.prompt('Add URL', 'Please enter a URL:', function(btn, text){
+                        if (btn == 'ok'){
+                            mpd.cmd(['add', text])
+                        }
+                    });
+				}
 			}
 		]
 	})

@@ -26,7 +26,7 @@ Ext.apply(mpd.events, {
 })
 
 mpd.events.addEvents("repeat", "playlists", "consume", "random", "uptime", 
-	"elapsed", "volume", "single", "db_update", "artists", "playtime", 
+	"elapsed", "volume", "single", "db_update", "updating_db", "artists", "playtime", 
 	"albums", "db_playtime", "playlistlength", "playlist", "xfade", "state", 
 	"playlistname", "songs")
 	
@@ -58,7 +58,10 @@ mpd._elapsedRunner = new Ext.util.TaskRunner()
 mpd.checkStatus = new Ext.util.DelayedTask(function() {
     Ext.Ajax.request({
         url: '/status',
-        params: {'uptime': mpd.status.uptime},
+        params: {
+            'uptime': mpd.status.uptime,
+            'updating_db': mpd.status.updating_db
+        },
         success: function (req, opt) {
 			try {
 				var txt = req.responseText
