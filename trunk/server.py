@@ -136,7 +136,26 @@ class Root:
             d = args[0]
             if d.startswith("/"):
                 d = d[1:]
-            mpd.add(d)
+            if "://" in d[3:7]:
+                ext = d.split("?")[0].split(".")[-1]
+                if ext in ['mp3', 'pgg', 'wav', 'flac', 'aac', 'mod', 'wma']:
+                    mpd.add(d)
+                else:
+                    sock = urllib2.urlopen(d)
+                    data = sock.read()
+                    info = sock.info()
+                    mime = info.gettype()
+                    sock.close()
+                    if mime == "audio/x-scpls" or ext == "pls":
+                        mpd.load_pls(data)
+                    elif mime == "audio/x-mpegurl" or ext == "m3u":
+                        mpd.load_m3u(data)
+                    elif mime == "application/xspf+xml" or ext == "xspf":
+                        pass
+                    else:
+                        raise cherrypy.HTTPError(501, message="Unsupported URI:  "+d)                        
+            else:
+                mpd.add(d)
     add.exposed = True
 
 
@@ -176,6 +195,7 @@ class Root:
         try:
             if len(args) == 1:
                 args = args[0]
+            print args
             result = mpd.execute(args)
         except MPDError, e:
             raise cherrypy.HTTPError(501, message=str(e))
@@ -281,6 +301,7 @@ class Root:
                 'id': 'playlist:'
             }
         ]
+        
         result['totalCount'] = len(result['data'])
         return json.dumps(result)
     home.exposed = True
@@ -437,7 +458,6 @@ class Root:
         else:
             data = mpd.execute(cmd)
             
-        filter = kwargs.get('filter')
         if filter:
             data = self.filter_results(data, filter)
             
@@ -478,12 +498,15 @@ class Root:
 
     def status(self, **kwargs):
         client_uptime = kwargs.get('uptime')
+        client_updating_db = kwargs.get('updating_db', '')
         if not client_uptime:
             s = mpd.sync()
             return json.dumps(s)
         n = 0
         while n < 50:
             if mpd.state.get('uptime', '') <> client_uptime:
+                return json.dumps(mpd.state)
+            if mpd.state.get('updating_db', '') <> client_updating_db:
                 return json.dumps(mpd.state)
             sleep(0.1)
             n += 1
@@ -520,6 +543,21 @@ class Root:
             root = {}
             loadChildren(root, '')
             result = root['children']
+        elif node == 'outputs:':
+            result = []
+            rawdata = mpd.outputs()
+            for item in rawdata:
+                if item['outputenabled'] == '1':
+                    cls = 'icon-output-on'
+                else:
+                    cls = 'icon-output-off'
+                result.append({
+                    'text': item['outputname'],
+                    'id': item['outputid'],
+                    'type': 'output',
+                    'iconCls': cls,
+                    'leaf': True
+                })
         else:
             itemType = node.split(":")[0]
             data = [x for x in mpd.execute_sorted(cmd, 'title') if x.get('title')]

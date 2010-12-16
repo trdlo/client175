@@ -297,7 +297,11 @@ class _Mpd_Instance:
         if includeCounts is None:
             includeCounts = self.include_playlist_counts
             
-        data = self.con.listplaylists()
+        try:
+            data = self.con.listplaylists()
+        except:
+            return []
+            
         for index in range(len(data)):
             item = data[index]['playlist']
             if includeCounts:
@@ -336,6 +340,23 @@ class _Mpd_Instance:
                 self.con.play(0)
         finally:
             self.lock.release()
+            
+            
+    def load_pls(self, data):
+        urls = re.findall("^File\d+=(.+)$", data, flags=re.IGNORECASE|re.MULTILINE)
+        if urls:
+            for u in urls:
+                print u
+                self.add(u)
+            
+            
+    def load_m3u(self, data):
+        urls = [x for x in data.splitlines() if x[0:1] != "#"]
+        if urls:
+            for u in urls:
+                if len(u) > 0:
+                    print u
+                    self.add(u)
         
         
     def password(self, pw):
@@ -440,6 +461,9 @@ class _Mpd_Instance:
             s = dict( ((x, None) for x in self.con._TAGS_LOWER) )
             s.update(self.con.stats())
             s.update(self.con.status())
+            if not s.has_key('updating_db'):
+                s['updating_db'] = ''
+                
             t = s.get('time')
             if t is None:
                 t = '0:0'
