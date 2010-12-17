@@ -26,6 +26,7 @@ import threading, re, os, socket
 from copy import deepcopy
 import sys, traceback
 from functools import partial
+from xml.etree import ElementTree as ET
 
 
 _Instance = None
@@ -346,7 +347,6 @@ class _Mpd_Instance:
         urls = re.findall("^File\d+=(.+)$", data, flags=re.IGNORECASE|re.MULTILINE)
         if urls:
             for u in urls:
-                print u
                 self.add(u)
             
             
@@ -355,8 +355,17 @@ class _Mpd_Instance:
         if urls:
             for u in urls:
                 if len(u) > 0:
-                    print u
                     self.add(u)
+            
+            
+    def load_xspf(self, data):
+        print data
+        x = ET.XML(data)
+        urls = x.findall(".//{http://xspf.org/ns/0/}location")
+        for url in urls:
+            u = url.text
+            if u:
+                self.add(u)
         
         
     def password(self, pw):
