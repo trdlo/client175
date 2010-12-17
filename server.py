@@ -151,7 +151,7 @@ class Root:
                     elif mime == "audio/x-mpegurl" or ext == "m3u":
                         mpd.load_m3u(data)
                     elif mime == "application/xspf+xml" or ext == "xspf":
-                        pass
+                        mpd.load_xspf(data)
                     else:
                         raise cherrypy.HTTPError(501, message="Unsupported URI:  "+d)                        
             else:
