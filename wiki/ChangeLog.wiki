@@ -1,5 +1,12 @@
 #summary Overview of changes between versions.
 
+== 0.5a Released December 17, 2010 ==
+
+ * Added control over mpd outputs
+ * Added support for adding URLs to playlist (files, pls, m3u, and xspf)
+ * Fixed Filter in tab browser
+
+
 == 0.4 Released November 20, 2010 ==
 
  * Switched to LyricsWiki lookup
