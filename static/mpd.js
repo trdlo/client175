@@ -28,7 +28,7 @@ Ext.apply(mpd.events, {
 mpd.events.addEvents("repeat", "playlists", "consume", "random", "uptime", 
 	"elapsed", "volume", "single", "db_update", "updating_db", "artists", "playtime", 
 	"albums", "db_playtime", "playlistlength", "playlist", "xfade", "state", 
-	"playlistname", "songs")
+	"playlistname", "song", "songs")
 	
 
 mpd.timer_delay = 100

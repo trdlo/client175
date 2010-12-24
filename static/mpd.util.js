@@ -285,6 +285,65 @@ mpd.util.editLyrics = function(el) {
 }
 
 
+mpd.util.audio = null
+mpd.util.stream = false
+mpd.util.playStream = function(evt){
+    if (mpd.util.stream) {
+        if (mpd.util.audio) {
+            mpd.util.audio.pause()
+            delete mpd.util.audio
+        }
+        if (mpd.status.state == 'play') {
+            mpd.util.audio = new Audio(mpd.util.stream)
+            mpd.util.audio.play()
+        }
+    }
+}
+    
+mpd.util.optionsDialog = new Ext.Window({
+	title: 'Client175 Options',
+	closeAction: 'hide',
+	layout: 'vbox',
+	layoutConfig: {
+        align: 'stretch',
+        defaultMargins: '2 0 2 0'
+    },
+	width: 250,
+	height: 200,
+	padding: 5,
+	items: [
+        {
+			xtype: 'label',
+            text: 'MPD Stream URL:'
+        },
+        {
+			xtype: 'textfield',
+			id: 'txtoptions-stream',
+			value: Ext.state.Manager.get('options-stream', "http://"+location.hostname+":8000/mpd.ogg")
+        },
+        {
+            xtype: 'button',
+            text: 'Connect',
+            handler: function(){
+                var src = Ext.getCmp("txtoptions-stream").getValue()
+                Ext.state.Manager.set('options-stream', src)
+                if (!mpd.util.stream) {
+                    mpd.util.stream = src
+                    mpd.events.on('state', mpd.util.playStream)
+                    mpd.events.on('song', mpd.util.playStream)
+                    Ext.getCmp("streamStatus").setText('Status: Ready')
+                }
+                mpd.util.playStream()
+            }
+        },
+        {
+			xtype: 'label',
+            id: 'streamStatus',
+            text: 'Status:  Not Connected'
+        }
+    ]
+})
+
 mpd.util.playlistDialog = new Ext.Window({
 	title: 'Choose Playlist to Load...',
 	layout: 'vbox',

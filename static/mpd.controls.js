@@ -61,7 +61,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
 
         var endBox = new Ext.Container({
             layout: 'absolute',
-            width: 160,
+            width: 190,
             height: 62,
             items: [
 				new Ext.Button({
@@ -96,7 +96,25 @@ mpd.Controls = Ext.extend(Ext.Container, {
                         },
                         fields: mpd.dbFields()
                     })
-                })
+                }),
+                new Ext.Button({
+                    x: 155,
+                    y: 1,
+					iconCls: 'icon-about',
+					tooltip: 'About Client175',
+					handler: function() {
+						window.open('/about')
+					}
+				}),
+                new Ext.Button({
+                    x: 159,
+                    y: 32,
+					iconCls: 'icon-options',
+					tooltip: 'Options',
+					handler: function() {
+						mpd.util.optionsDialog.show()
+					}
+				})
             ]
         })
         
@@ -233,14 +251,7 @@ mpd.Controls = Ext.extend(Ext.Container, {
 			},
             items: [
                 statusControls,
-                endBox,
-                new Ext.Button({
-					iconCls: 'icon-about',
-					tooltip: 'About Client175',
-					handler: function() {
-						window.open('/about')
-					}
-				})
+                endBox
             ]
         })
 

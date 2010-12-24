@@ -20,7 +20,7 @@
 #       MA 02110-1301, USA.
 
 
-import cherrypy, json, os, pwd, urllib, urllib2
+import cherrypy, json, os, pwd, urllib, urllib2, sys
 from BeautifulSoup import BeautifulSoup
 from time import sleep
 from datetime import datetime, timedelta
@@ -31,13 +31,15 @@ import lyricwiki
 import metadata
 from metadata._base import NotReadable, NotWritable
 
-
 cherrypy.config.update( {
     'server.thread_pool': 10,
     'server.socket_host': '0.0.0.0'
 } )
 LOCAL_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__))
-cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
+try:
+    cherrypy.config.update(os.path.join(LOCAL_DIR, sys.argv[1]))
+except:
+    cherrypy.config.update(os.path.join(LOCAL_DIR, "site.conf"))
 
 MUSIC_DIR = cherrypy.config.get('music_directory', '/var/lib/mpd/music/')
 MUSIC_DIR = os.path.expanduser(MUSIC_DIR)
