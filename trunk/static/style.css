@@ -105,6 +105,11 @@ div.add:hover {
 	height: 22px !important;
 	width: 32px !important;
 }
+.icon-options {
+	background: url("icons/fugue/gear.png") no-repeat !important;
+	height: 16px !important;
+	width: 16px !important;
+}	
 .icon-outputs {
 	background: url("icons/fugue/speaker.png") no-repeat !important;
 }
