@@ -5,7 +5,7 @@
 
 This page describes how to run client175 behind an existing Apache installation using mod_python.  
 
-Why would you do this?  Primarily, because you already have Apache running for other reasons and you want to integrate client175 into that installation rather than running another web server.  There is no reason to install Apache just to run this client.
+Why would you do this?  Primarily, because you already have Apache running for other reasons and you want to integrate client175 into that installation rather than running another web server.  There is no reason to install Apache _just_ to run this client.
 
 These instructions are based on Ubuntu.  
 
