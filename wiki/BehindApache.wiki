@@ -22,6 +22,11 @@ Create a symlink from /etc/apache2/mods-available to /etc/apache2/mods-enabled f
 {{{ln -s /etc/apache2/mods-available/python.load /etc/apache2/mods-enabled}}}
 
 
+== Extract/Copy client175 Package ==
+
+Extract the contents of the client175 package or copy the files from an existing location to the appropriate location for your setup.  On my PC, that location is /var/www/client175.
+
+
 
 == Edit "server_root" in site.conf ==
 
@@ -63,5 +68,3 @@ The account that Apache runs under needs to have read/write access to the locati
 {{{sudo /etc/init.d/apache2 restart}}}
 
 Apache will instantiate CherryPy on it's own when needed, so there is no need to also start the included server.  The most likely cause of problems will be permissions.  Ensure that the user Apache runs under can create files in the location client175 is installed to.
-
-
