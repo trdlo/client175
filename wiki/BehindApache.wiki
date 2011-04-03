@@ -32,6 +32,8 @@ Extract the contents of the client175 package or copy the files from an existing
 
 The site.conf file in the client175 root folder contains various optional settings, including the server_root option.  If you wish to have client175 available in a sub folder of your Apache install, uncomment that line and set it to the path you would like to use.
 
+If you haven't already edited the music_directory option to point to your music folder, you should do that also to enable tag editing.
+
 
 
 == Edit httpd.conf ==
@@ -67,4 +69,6 @@ The account that Apache runs under needs to have read/write access to the locati
 
 {{{sudo /etc/init.d/apache2 restart}}}
 
-Apache will instantiate CherryPy on it's own when needed, so there is no need to also start the included server.  The most likely cause of problems will be permissions.  Ensure that the user Apache runs under can create files in the location client175 is installed to.
+Apache will handle serving the site completely in this setup, so you should not start the included server manually or via any upstart/init scripts.
+
+The most likely cause of problems will be permissions.  Ensure that the user Apache runs under can create files in the location client175 is installed to.
