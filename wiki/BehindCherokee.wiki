@@ -31,8 +31,7 @@ The source is now configured and we just have to configure a new virtual server.
 It is likely that will want to setup a new vserver for client175 (http://client175.yourhost.com/ for instance).
 
 To begin, add a new VServer as you would do for a normal vserver.
-Once it is done, select the behavier tab of your VServer and click on the "Default" rule. Then click on the handler tab and complete the informations exactly like on the picture :
-
+Once it is done, select the behavier tab of your VServer and click on the "Default" rule. Then click on the handler tab and select "HTTP Reverse Proxy". Now complete the fields with the following informations : 
 [http://ftp.clemworkbench.fr/vserver.png]
 
 Be sure to check the Preserve Host Header checkbox.
