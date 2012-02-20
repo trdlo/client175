@@ -1,0 +1,15 @@
+#summary Setup Cherokee to run client175
+
+= Introduction =
+
+If you already have cherokee server running on your box and want to use it to access client175 then you are on the right page.
+
+= Client175 Setup =
+
+Setup you client175 installation and configure your site.conf like you will do for a standalone server
+
+= Cherokee Setup =
+All the configuration is done
+
+== Sources ==
+In the "Sources"
