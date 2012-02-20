@@ -32,6 +32,7 @@ It is likely that will want to setup a new vserver for client175 (http://client1
 
 To begin, add a new VServer as you would do for a normal vserver.
 Once it is done, select the behavier tab of your VServer and click on the "Default" rule. Then click on the handler tab and select "HTTP Reverse Proxy". Now complete the fields with the following informations : 
+
 [http://ftp.clemworkbench.fr/vserver.png]
 
 Be sure to check the Preserve Host Header checkbox.
